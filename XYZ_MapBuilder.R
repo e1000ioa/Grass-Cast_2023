@@ -190,6 +190,7 @@ map_Precip <- function(year,season,measure,unit,colname,color,limx,limy) {
 
 map_Precip(2020,"Summer","Precipitation","(mm)","PPTjja_.cm.","lapaz",0,500)
 
+unique(Forecast_Ratio$Forecast)
 
 map_ANPP <- function(year,season,measure,unit,colname,color,limx,limy) {
   
@@ -303,5 +304,145 @@ map_ANPP <- function(year,season,measure,unit,colname,color,limx,limy) {
   
 }
 
-
 map_ANPP(2022,"Summer","ANPP","(lb/ac)","ANPP_summer_lbs_ac","bamako",-35,2000)
+
+
+#################
+#MAP for anomalies using other data frame
+
+#########
+##Forecast Data
+gfg_data_22 <- read.csv(file = "data/grass_cast_2022.csv", head = TRUE, sep=",") %>% 
+  subset(select=c("gridID","Year","Forecast", "NPP_predict_avg", "deltaNPP_avg" ,"Order"))
+
+gfg_data_21_20 <- read.csv(file = "data/grass_cast_20-21.csv", head = TRUE, sep=",") %>%  
+  subset(select=c("gridID","Year","Forecast", "NPP_predict_avg", "deltaNPP_avg" ,"Order"))
+
+forcasts <- rbind(gfg_data_22,gfg_data_21_20) 
+
+##Parse the dates into a consistent format
+parsed_dates <- parse_date_time(forcasts$Forecast, orders = c("mdy")) # specifying the possible formats using the orders argument
+forcasts$Forecast <- format(parsed_dates, "%Y-%m-%d") #The possible formats are listed in order of preference, so the function will try to parse each date in the first format, and if that fails, it will move on to the next format, and so on.
+
+#Region separation and location file
+summerwinter <- read.csv(file = "data/RatioSummerWinter.csv", head = TRUE, sep=",") %>% 
+  subset(select=c("gridID","latitude","longitude","pptRatioSummerWinter"))
+
+#Joins the table 
+Forecast_Ratio <- left_join(forcasts, summerwinter, by = c("gridID" = "gridID"))
+
+#########
+##Map Builder
+
+map_ANPP_GClegend <- function(year,dat, season,measure,unit,colname,extra) {
+  
+  df <- Forecast_Ratio %>% 
+    filter(year == year) %>%  filter(Forecast == dat) %>%
+    subset(select=c("longitude","latitude",colname))
+  
+  colnames(df) <- c('x', 'y', 'z')
+  
+  ############
+  ## CREATES RASTER
+  # Interpolate the values to a regularly spaced grid
+  f <- with(df, interp(x, y, z))
+  
+  # Create a raster from the interpolated values
+  r <- raster(f, crs = "+proj=utm +zone=11 +datum=WGS84 +units=m +no_defs")
+  
+  #Crop the Raster and save it to data frame for ggplot
+  r2 <- crop(r, extent(south_west_merged))
+  
+  #Prepare Df to be drawn
+  df_raster <- as.data.frame(rasterToPoints(r2)) #Changes the colum name z to layer
+  
+  #Change df to spatial object
+  st <- df %>% st_as_sf(coords = c("x", "y")) %>% st_set_crs(st_crs(south_west_s))
+  
+  
+  
+  ############
+  ##DRAW
+  
+  a <- ggplot() +
+    #Add Raster and modify Scale +
+    geom_raster(data = df_raster, aes(x = x, y = y, fill = layer)) + 
+    scale_fill_stepsn(name = paste(measure,unit),
+                    colours=c("#f90207", "#fd9200", "#fffd05", "#baf9a1", "#05fdff", "#3e83f9", '#0200fc'),
+                      limits = c(-40,40),
+                      breaks = c(-30, -15, -5, 0, 5, 15,30),
+                      values = scales::rescale(c(-30, -15, -5, 5, 15,30)),
+                      labels = c("<-30", "-30 to -15", "-15 to -5", "-5 to 5", "5 to 15", "15 to 30", ">30")) +
+                      
+
+    #Add Spatial Elements
+    geom_sf(data = south_west_merged, fill = NA, color = "white", linewidth = 2, linetype = "solid") +
+    geom_sf(data = south_west_s, fill = NA, color=alpha("#000000",1), linewidth= 1.4,linetype = "solid") +
+    geom_sf(data = south_west_c, fill = NA, color=alpha("#000000",0.2), linewidth=0.8,linetype = "dotted") +
+    geom_sf(data = other_states, fill = "grey", color=alpha("grey40",0.4), linewidth=0.5,linetype = "dashed") +
+    theme_minimal() +
+  
+    
+    #Add Text Elements 
+    xlab(NULL) + 
+    ylab(NULL) +
+    ggtitle(label = paste(season,year,"-",measure), subtitle = paste(extra,dat, unit)) +
+    
+    #Element Modification
+    theme(
+      legend.direction = "vertical",  
+      legend.position=c(0.12, 0.3),
+      legend.justification = c(0.5, 0.5),
+      plot.margin = unit(c(0.4,0.4,0.4,0.4), "cm"),
+      legend.background = element_rect(), 
+      legend.key = element_blank(),
+      plot.title = element_text(hjust = 0.5),
+      plot.subtitle = element_text(hjust = 0.5),
+      legend.title = element_text(size = 8), 
+      legend.text = element_text(size = 8)
+    ) +
+    
+    #zoom map to cordinates
+    coord_sf(xlim = c(-118, -103),ylim = c(37, 30)) 
+  
+  ## ADD SCALE AN ARROW
+  
+  b <- a +
+    ggspatial::annotation_scale(
+      location = "br",
+      bar_cols = c("black", "white")) +
+    
+    ggspatial::annotation_north_arrow(
+      location = "tr", which_north = "true",
+      pad_x = unit(9.5, "cm"),
+      pad_y = unit(0.25, "cm"),
+      style = north_arrow_orienteering(
+        line_width = 1,
+        line_col = "black",
+        fill = c("white", "black"),
+        text_col = "black",
+        #text_family = "",
+        text_face = NULL,
+        text_size = 10,
+        text_angle = 0))
+  
+  #Save the Plots
+  
+  ggsave(
+    paste0("data/",measure,"_",year,"_",season,"_",dat,".png"),
+    plot = last_plot(),
+    device = NULL,
+    path = NULL,
+    scale = 1,
+    width = NA,
+    height = NA,
+    #units = c("in", "cm", "mm", "px"),
+    dpi = 300,
+    limitsize = TRUE,
+    bg = "white",
+  )
+  return(b)
+  
+}
+
+map_ANPP_GClegend(2022,"2022-07-12","SUMMER","ANPP","(%)","deltaNPP_avg","ANOMALY 20 YEAR AVERAGE")
