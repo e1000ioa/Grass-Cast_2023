@@ -32,6 +32,8 @@ summerwinter <- read.csv(file = "data/RatioSummerWinter.csv", head = TRUE, sep="
 #Joins the table 
 Forecast_Ratio <- left_join(forcasts, summerwinter, by = c("gridID" = "gridID"))
 
+write.csv(Forecast_Ratio, file = "data/Forecast_Ratio.csv")
+
 #Check all the dates
 Dates_List <- unique(Forecast_Ratio$Forecast)
 i1 <- order(as.Date(Dates_List, format = "%Y-%m-%d"))
@@ -106,7 +108,7 @@ Correlations <- function(y,first,last){
   return(Corelations)
 }
 
-Correlations(2022,"2022-01-01","2022-06-30")
+Correlations(2023,"2020-02-01","2020-12-12")
 
 ggpl <- function(df, season, first,last, nudge_y, nudge_x){
 
