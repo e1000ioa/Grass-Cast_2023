@@ -20,14 +20,12 @@ library(ggspatial) #Spatial data plus the power of the ggplot2 framework means e
 ################
 #Load Data frame
 Forecast_202122 <- read.csv("data/Forecast_Ratio.csv")
-unique(Forecast_202122$Forecast)[1]
+unique(Forecast_202122$Forecast)
 
-df <- Forecast_202122 %>% 
-  filter(Forecast == "2022-04-19") %>%
-  subset(select=c("longitude","latitude","NPP_predict_avg"))
-
-colnames(df) <- c('x', 'y', 'z')
-
+#Order Dates for selection
+Dates_List <- unique(Forecast_202122$Forecast)
+i1 <- order(as.Date(Dates_List, format = "%Y-%m-%d"))
+Dates_List[i1]
 
 ##########
 ###################          CREATE SPATIAL OBJECTS
@@ -60,37 +58,46 @@ other_states_6 <- states_sf %>% filter(str_detect(ID, c("oklahoma")))
 other_states <- rbind(other_states_1, other_states_2,other_states_3,other_states_4,other_states_5,other_states_6)
 
 
+##########
+############Function
 
-
-map_ANPP_GClegend <- function(date,date2,season,measure,unit,colname,extra) {
+map_Anomally <- function(date,date2,season,measure,unit,colname) {
   
   df <- Forecast_202122 %>% 
   filter(Forecast == date) %>%
     subset(select=c("longitude","latitude",colname))
   
+  colnames(df) <- c('x', 'y', 'z')
+  
   df2 <- Forecast_202122 %>% 
     filter(Forecast == date2) %>%
     subset(select=c("longitude","latitude",colname))
   
-  colnames(df) <- c('x', 'y', 'z')
-  
+  colnames(df2) <- c('x', 'y', 'z')
+
+
   ############
   ## CREATES RASTER
   # Interpolate the values to a regularly spaced grid
   f <- with(df, interp(x, y, z))
+  f2 <- with(df2, interp(x, y, z))
   
   # Create a raster from the interpolated values
   r <- raster(f, crs = "+proj=utm +zone=11 +datum=WGS84 +units=m +no_defs")
+  r2 <- raster(f2, crs = "+proj=utm +zone=11 +datum=WGS84 +units=m +no_defs")
   
   #Crop the Raster and save it to data frame for ggplot
-  r2 <- crop(r, extent(south_west_merged))
+  cr <- crop(r, extent(south_west_merged))
+  cr2 <- crop(r2, extent(south_west_merged))
+  
+  cr_substraction <- ((cr - cr2)/cr)*100
   
   #Prepare Df to be drawn
-  df_raster <- as.data.frame(rasterToPoints(r2)) #Changes the colum name z to layer
-  
+  cr_raster <- as.data.frame(rasterToPoints(cr_substraction)) #Changes the colum name z to layer
+
   #Change df to spatial object
   st <- df %>% st_as_sf(coords = c("x", "y")) %>% st_set_crs(st_crs(south_west_s))
-  
+  st2 <- df2 %>% st_as_sf(coords = c("x", "y")) %>% st_set_crs(st_crs(south_west_s))
   
   
   ############
@@ -98,7 +105,7 @@ map_ANPP_GClegend <- function(date,date2,season,measure,unit,colname,extra) {
   
   a <- ggplot() +
     #Add Raster and modify Scale +
-    geom_raster(data = df_raster, aes(x = x, y = y, fill = layer)) + 
+    geom_raster(data = cr_raster, aes(x = x, y = y, fill = layer)) + 
     scale_fill_stepsn(name = paste(measure,unit),
                       colours=c("#f90207", "#fd9200", "#fffd05", "#baf9a1", "#05fdff", "#3e83f9", '#0200fc'),
                       limits = c(-40,40),
@@ -118,7 +125,7 @@ map_ANPP_GClegend <- function(date,date2,season,measure,unit,colname,extra) {
     #Add Text Elements 
     xlab(NULL) + 
     ylab(NULL) +
-    ggtitle(label = paste(season,year,"-",measure), subtitle = paste(extra,dat, unit)) +
+    ggtitle(label = paste(measure, season,substr(date, 1, 4)), subtitle = paste("FORECAST DIFFERENCES BETWEEN",date,"/",date2)) +
     
     #Element Modification
     theme(
@@ -161,7 +168,7 @@ map_ANPP_GClegend <- function(date,date2,season,measure,unit,colname,extra) {
   #Save the Plots
   
   ggsave(
-    paste0("data/",measure,"_",year,"_",season,"_",dat,".png"),
+    paste0("data/",measure,"_DIF_",substr(date, 1, 4),"_",season,"_",date,"_",date2,".png"),
     plot = last_plot(),
     device = NULL,
     path = NULL,
@@ -174,7 +181,10 @@ map_ANPP_GClegend <- function(date,date2,season,measure,unit,colname,extra) {
     bg = "white",
   )
   return(b)
-  
 }
 
-map_ANPP_GClegend(2022,"2022-07-12","SUMMER","ANPP","(%)","deltaNPP_avg","ANOMALY 20 YEAR AVERAGE")
+############
+#Result
+
+map_Anomally("2021-08-10","2021-08-24","SUMMER","ANPP","(%)","NPP_predict_avg")
+  

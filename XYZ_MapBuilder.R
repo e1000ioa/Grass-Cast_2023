@@ -445,4 +445,4 @@ map_ANPP_GClegend <- function(year,dat, season,measure,unit,colname,extra) {
   
 }
 
-map_ANPP_GClegend(2022,"2022-07-12","SUMMER","ANPP","(%)","deltaNPP_avg","ANOMALY 20 YEAR AVERAGE")
+map_ANPP_GClegend(2022,"2020-06-30","SPRING","ANPP","(%)","deltaNPP_avg","ANOMALY 20 YEAR AVERAGE")
