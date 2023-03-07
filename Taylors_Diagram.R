@@ -4,12 +4,14 @@ library(dplyr) #dplyr is a grammar of data manipulation, providing a consistent 
 library(tidyr) #clean messy data
 library(ggthemes) #Extra Themes, Scales and Geoms for 'ggplot2'
 library(plotrix) #Extra of plots, various labeling, axis and color scaling functions.
+library(lubridate) #Options to works with date formats
+library(zoo) #Infrastructure for Regular and Irregular Time Series
 
 ##########
 #Load and Select Data
 #COPY FROM CORREALTIONS_2020-2022
 #Grind ID 
-GC <- read.csv(file = "data/az_nm_2000_2020.csv", head = TRUE, sep=",") 
+GC <- read.csv(file = "data/az_nm_2000_2020.csv", head = TRUE, sep=",")
 
 #Forecast Data
 gfg_data_22 <- read.csv(file = "data/grass_cast_2022.csv", head = TRUE, sep=",") %>% 
@@ -127,7 +129,6 @@ st <- Stats("2022-01-01","2022-05-31")
 
 #####
 #Try Taylor Diagram
-
 df <- Forecast_Ratio
 df <- split(df, df$Forecast)
 
@@ -145,15 +146,8 @@ for(i in 1:length(df)) {
 }
 
 
-n <- "2020-06-01"
-x <- "2020-12-31"
 
-dfz <- orderModels[orderModels$name >= as.Date(n) & orderModels$name <= as.Date(x),]
-frst <- dfz$order[1] #Selects the first value of the list
-lst <- tail(dfz$order, n=1) # Selects the Last value on the list
-dfz$name
-
-Talyor <- function(n, x){
+Taylor <- function(n, x, c){
   
   #Creates new dataframe 
   dfz <- orderModels[orderModels$name >= as.Date(n) & orderModels$name <= as.Date(x),]
@@ -164,17 +158,83 @@ Talyor <- function(n, x){
   ref <- models[[tail(dfz$order, n=1)]]
   
   #Creates first diagram
-  oldpar<-taylor.diagram(ref,models[[dfz$order[1]]], col="red",pch=1)
+  oldpar<-taylor.diagram(ref,models[[dfz$order[1]]], col=c,pch=1)
   
   #Adds diagrams
   for (i in 2:tail(dfz$order, n=1)){
-    taylor.diagram(ref,models[[dfz$order[i]]], add=TRUE,col="red",pch=i+13)
+    taylor.diagram(ref,models[[dfz$order[i]]], add=TRUE,col=c,pch=i+13)
   }
 
   
 }
 
-Talyor(n,x)
+n <- "2020-06-01"
+x <- "2020-12-31"
 
-legend(400,650,legend=substr(dfz$name, 6, 10) ,pch=c(1,15,16,17,18,19,20),col="red")
+Legends <- function(n,x){
+
+#Creates df outside function to use in naming legeds
+dfz <- orderModels[orderModels$name >= as.Date(n) & orderModels$name <= as.Date(x),]
+frst <- dfz$order[1] #Selects the first value of the list
+lst <- tail(dfz$order, n=1) # Selects the Last value on the list
+dfz$name
+
+return(dfz)
+}
+
+dfz
+Taylor(n,x,c)
+#####
+#Draw the Maps
+#Spring 2020
+n <-"2020-01-01"
+x <- "2020-06-30"
+Taylor(n,x,"salmon")
+dfz <- Legends(n,x)
+legend(400,400,legend=substr(dfz$name, 6, 10) ,pch=c(1,15,16,17,18,19,20),col="salmon")
+
+#Spring 2021
+n <-"2021-01-01"
+x <- "2021-06-30"
+c <- "#826276"
+Taylor(n,x,c)
+dfz <- Legends(n,x)
+legend(450,500,legend=substr(dfz$name, 6, 10) ,pch=c(1,15,16,17,18,19,20),col=c)
+
+#Spring 2022
+n <-"2022-01-01"
+x <- "2022-05-30"
+c <- "plum"
+Taylor(n,x,c)
+dfz <- Legends(n,x)
+legend(200,200,legend=substr(dfz$name, 6, 10) ,pch=c(1,15,16,17,18,19,20),col=c)
+
+#####SUMMMER
+#Summer 2020
+n <-"2020-06-01"
+x <- "2020-12-31"
+c <- "salmon"
+Taylor(n,x,c)
+dfz <- Legends(n,x)
+legend(380,450,legend=substr(dfz$name, 6, 10) ,pch=c(1,15,16,17,18,19,20),col=c)
+
+#Summer 2021
+n <-"2021-06-01"
+x <- "2021-12-31"
+c <- "#826276"
+Taylor(n,x,c)
+dfz <- Legends(n,x)
+legend(600,750,legend=substr(dfz$name, 6, 10) ,pch=c(1,15,16,17,18,19,20),col=c)
+
+#Summer 2022
+n <-"2022-06-01"
+x <- "2022-12-31"
+c <- "plum"
+Taylor(n,x,c)
+dfz <- Legends(n,x)
+legend(540,750,legend=substr(dfz$name, 6, 10) ,pch=c(1,15,16,17,18,19,20),col=c)
+
+
+
+
 
