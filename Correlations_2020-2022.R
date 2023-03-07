@@ -42,10 +42,6 @@ Dates_List[i1]
 #########
 ##ALL Regions Correlations
 
-df <- Forecast_Ratio %>% filter(Year == 2020) 
-df <- df[df$Forecast >= as.Date("2020-01-01") & df$Forecast <= as.Date("2020-06-30"),]
-df <- split(df, df$Forecast)
-
 
 Correlations <- function(y,first,last){
   
@@ -108,7 +104,7 @@ Correlations <- function(y,first,last){
   return(Corelations)
 }
 
-Correlations(2023,"2020-02-01","2020-12-12")
+Correlations(2020,"2020-02-01","2020-12-12")
 
 ggpl <- function(df, season, first,last, nudge_y, nudge_x){
 

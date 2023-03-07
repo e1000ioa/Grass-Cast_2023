@@ -18,9 +18,6 @@ NPP_ANPP_20_21$Forecast2 <- anydate(NPP_ANPP_20_21$Forecast)
 
 NPP_ANPP_20_21$Forecast <- gsub("/", "-", NPP_ANPP_20_21$Forecast)
 
-
-
-
 #Combine DF
 NPP_ANPP_20_21_22 <- dplyr::bind_rows(NPP_ANPP_20_21, NPP_ANPP_22) #Append df with different columns 
 
