@@ -411,7 +411,7 @@ png(file="C:/Users/aguilarcubilla/Desktop/ANPP_FORECAST_S_SP2020_3.png",
     width=500, height=450)
 Taylor(Sp20n,Sp20x,"salmon")
 dfz <- Legends(Sp20n,Sp20x)
-legend(350,350,legend=substr(dfz$name, 6, 10) ,pch=c(1,15,16,17,18,19,20),col="salmon") +
+legend(160,170,legend=substr(dfz$name, 6, 10) ,pch=c(1,15,16,17,18,19,20),col="salmon") +
 dev.off()
 
 #Spring 2021
