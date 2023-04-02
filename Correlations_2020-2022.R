@@ -14,23 +14,23 @@ GC <- read.csv(file = "data/az_nm_2000_2020.csv", head = TRUE, sep=",")
 
 #Forecast Data
 gfg_data_22 <- read.csv(file = "data/grass_cast_2022.csv", head = TRUE, sep=",") %>% 
-  subset(select=c("gridID","Year","Forecast","NPP_predict_below","NPP_predict_avg","NPP_predict_above","Order"))
+  subset(select=c("gridID","Year","Forecast","NPP_predict_below","NPP_predict_avg","NPP_predict_above","Order","pct_diffNPP_avg"))
 
 gfg_data_21_20 <- read.csv(file = "data/grass_cast_20-21.csv", head = TRUE, sep=",") %>% 
-  subset(select=c("gridID","Year","Forecast","NPP_predict_below","NPP_predict_avg","NPP_predict_above","Order"))
+  subset(select=c("gridID","Year","Forecast","NPP_predict_below","NPP_predict_avg","NPP_predict_above","Order","pct_diffNPP_avg"))
 
-forcasts <- rbind(gfg_data_22,gfg_data_21_20) 
+forecasts <- rbind(gfg_data_22,gfg_data_21_20)
 
 ##Parse the dates into a consistent format
-parsed_dates <- parse_date_time(forcasts$Forecast, orders = c("mdy")) # specifying the possible formats using the orders argument
-forcasts$Forecast <- format(parsed_dates, "%Y-%m-%d") #The possible formats are listed in order of preference, so the function will try to parse each date in the first format, and if that fails, it will move on to the next format, and so on.
+parsed_dates <- parse_date_time(forecasts$Forecast, orders = c("mdy")) # specifying the possible formats using the orders argument
+forecasts$Forecast <- format(parsed_dates, "%Y-%m-%d") #The possible formats are listed in order of preference, so the function will try to parse each date in the first format, and if that fails, it will move on to the next format, and so on.
 
 #Region separation file
 summerwinter <- read.csv(file = "data/RatioSummerWinter.csv", head = TRUE, sep=",") %>% 
   subset(select=c("gridID","latitude","longitude","pptRatioSummerWinter"))
 
 #Joins the table 
-Forecast_Ratio <- left_join(forcasts, summerwinter, by = c("gridID" = "gridID"))
+Forecast_Ratio <- left_join(forecasts, summerwinter, by = c("gridID" = "gridID"))
 
 write.csv(Forecast_Ratio, file = "data/Forecast_Ratio.csv")
 
