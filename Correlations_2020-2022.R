@@ -104,7 +104,7 @@ Correlations <- function(y,first,last){
   return(Corelations)
 }
 
-Correlations(2020,"2020-02-01","2020-12-12")
+Correlations(2020,"2020-06-16","2020-09-01")
 
 ggpl <- function(df, season, first,last, nudge_y, nudge_x){
 
