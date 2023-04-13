@@ -6,7 +6,8 @@ library(ggthemes) #Extra Themes, Scales and Geoms for 'ggplot2'
 library(plotrix) #Extra of plots, various labeling, axis and color scaling functions.
 library(lubridate) #Options to works with date formats
 library(zoo) #Infrastructure for Regular and Irregular Time Series
-library(plotrix)
+library(plotrix) #add talyor pltos
+library(Metrics) #has the rmse fucntion
 
 ##########
 #Load and Select Data
@@ -162,13 +163,16 @@ for(i in 1:length(df)) {
   models[[model_name]] <- model
 }
 
+
+
 return(models)
 }
 
 #models <- data_select(df)
 
 Taylor <- function(n, x, c){
-  #Where:
+ 
+   #Where:
       #n = date start
       #x = date end
       #c = color of dot
@@ -178,23 +182,36 @@ Taylor <- function(n, x, c){
   frst <- dfz$order[1] #Selects the first value of the list
   lst <- tail(dfz$order, n=1) # Selects the Last value on the list
   
-  #Creates the point of refences, the last observation
+  #Creates the point of refences, the last observation all the values are on Models
   ref <- models[[tail(dfz$order, n=1)]]
   
   #Creates first diagram
-  oldpar<-taylor.diagram(ref,models[[dfz$order[1]]], col=c,pch=1, cex=1.2, pcex = 1.8,
-                         main = NULL)
+  oldpar<-taylor.diagram(ref,models[[dfz$order[1]]], col=c,pch=1, cex=1.2, pcex = 2,
+                         main = NULL,
+                         xlab="Standart Deviation (lb/acre)",
+                         pos.cor=TRUE,
+                         show.gamma = T,
+                         sd.arcs = T,
+                         col.smooth.lines="red")
+  text(x=rmse(models[[head(dfz$order, n=1)]], models[[tail(dfz$order, n=1)]])*2,
+       y=rmse(models[[head(dfz$order, n=1)]], models[[tail(dfz$order, n=1)]])*2,
+       pos=2, srt = 45,
+       label="RMSE",font=3,cex=0.8)
+  
   
   #Adds diagrams
   for (i in 2:tail(dfz$order, n=1)){
     taylor.diagram(ref,models[[dfz$order[i]]], add=TRUE,col=c,pch=i+13, cex=1.2,
-                   pcex = 1.8,main = NULL) 
+                   pcex = 2,main = NULL) 
     #Cex = plotting text and symbols should be scaled relative to the default
     #pcex = point expansion for the plotted points.
   }
 
   
 }
+
+rmse(models[[head(dfz$order, n=1)]], models[[tail(dfz$order, n=1)]])
+
 
 n <- "2020-06-01"
 x <- "2020-12-31"
@@ -205,7 +222,7 @@ Legends <- function(n,x){
 dfz <- orderModels[orderModels$name >= as.Date(n) & orderModels$name <= as.Date(x),]
 frst <- dfz$order[1] #Selects the first value of the list
 lst <- tail(dfz$order, n=1) # Selects the Last value on the list
-dfz$name
+
 
 return(dfz)
 }
@@ -215,7 +232,7 @@ models <- model_select(df)
 #Draw the Maps
 #Spring 2020
 png(file="C:/Users/aguilarcubilla/Desktop/ANPP_FORECAST_ALL_SP2020.png",
-    width=500, height=450)
+    width=500, height=500)
 Sp20n <-"2020-01-01"
 Sp20x <- "2020-06-03"
 Taylor(Sp20n,Sp20x,"salmon")
