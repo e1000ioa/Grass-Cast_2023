@@ -8,40 +8,77 @@ library(zoo)
 ####################
 #######Data base prep
 #upload the data and select collumns 
+#Load and Select Data
 
 #Grind ID 
-GC <- read.csv(file = "data/az_nm_2000_2020.csv", head = TRUE, sep=",") 
+GC <- read.csv(file = "data/az_nm_2000_2020.csv", head = TRUE, sep=",")
 
 #Forecast Data
 gfg_data_22 <- read.csv(file = "data/grass_cast_2022.csv", head = TRUE, sep=",") %>% 
-  subset(select=c("gridID","Year","Forecast","NPP_predict_below","NPP_predict_avg","NPP_predict_above","Order","pct_diffNPP_avg"))
+  subset(select=c("gridID","Year","Forecast","NPP_predict_below","NPP_predict_avg","NPP_predict_above","Order"))
 
 gfg_data_21_20 <- read.csv(file = "data/grass_cast_20-21.csv", head = TRUE, sep=",") %>% 
-  subset(select=c("gridID","Year","Forecast","NPP_predict_below","NPP_predict_avg","NPP_predict_above","Order","pct_diffNPP_avg"))
+  subset(select=c("gridID","Year","Forecast","NPP_predict_below","NPP_predict_avg","NPP_predict_above","Order"))
 
-forecasts <- rbind(gfg_data_22,gfg_data_21_20)
+forcasts <- rbind(gfg_data_22,gfg_data_21_20) 
 
 ##Parse the dates into a consistent format
-parsed_dates <- parse_date_time(forecasts$Forecast, orders = c("mdy")) # specifying the possible formats using the orders argument
-forecasts$Forecast <- format(parsed_dates, "%Y-%m-%d") #The possible formats are listed in order of preference, so the function will try to parse each date in the first format, and if that fails, it will move on to the next format, and so on.
+parsed_dates <- parse_date_time(forcasts$Forecast, orders = c("mdy")) # specifying the possible formats using the orders argument
+forcasts$Forecast <- format(parsed_dates, "%Y-%m-%d") #The possible formats are listed in order of preference, so the function will try to parse each date in the first format, and if that fails, it will move on to the next format, and so on.
 
 #Region separation file
 summerwinter <- read.csv(file = "data/RatioSummerWinter.csv", head = TRUE, sep=",") %>% 
   subset(select=c("gridID","latitude","longitude","pptRatioSummerWinter"))
 
 #Joins the table 
-Forecast_Ratio <- left_join(forecasts, summerwinter, by = c("gridID" = "gridID"))
-
-write.csv(Forecast_Ratio, file = "data/Forecast_Ratio.csv")
+Forecast_Ratio <- left_join(forcasts, summerwinter, by = c("gridID" = "gridID"))
 
 #Check all the dates
 Dates_List <- unique(Forecast_Ratio$Forecast)
 i1 <- order(as.Date(Dates_List, format = "%Y-%m-%d"))
 Dates_List[i1]
 
+
+#####
+#Make the lenghts of the list match
+#Find the unique id's bettewn the unmacthed len list
+df <- Forecast_Ratio
+df <- split(df, df$Forecast)
+SameID <- intersect(df[["2022-04-19"]]$gridID,df[["2022-05-03"]]$gridID)
+
+#Go back to DF and add indicator with SameID info
+df <- Forecast_Ratio
+df$Indicator <- 1*(df$gridID %in% SameID)
+df <- split(df, df$Forecast) #go back to list
+
+#Creates empty list
+F.list <- list()
+
+#For loops the values that have mismatched dim
+for(i in 19:23) {
+  F.list[[i]] <- subset(df[[i]], df[[i]]$Indicator!="0")
+  
+}
+
+#Changes the content of the list
+dfx <- df #Just to be safe
+dfx[[19]] <- F.list[[19]]
+dfx[[20]] <- F.list[[20]]
+dfx[[21]] <- F.list[[21]]
+dfx[[22]] <- F.list[[22]]
+dfx[[23]] <- F.list[[23]]
+
+#Know the Models names and order
+orderModels <- data.frame(order=order(names(dfx)),
+                          name=names(dfx))
+
+Forecast_Ratio <- do.call(rbind, dfx) #Finish de DF back to begigin 
+rownames(Forecast_Ratio) <- NULL #Eliminates row names
+df <- split(Forecast_Ratio, Forecast_Ratio$Forecast)
+
+
 #########
 ##ALL Regions Correlations
-
 
 Correlations <- function(y,first,last){
   
