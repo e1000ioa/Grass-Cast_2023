@@ -168,9 +168,42 @@ for(i in 1:length(df)) {
 return(models)
 }
 
+png(file="C:/Users/aguilarcubilla/Desktop/test.png",
+    width=500, height=500)
+
+n <- "2020-06-01"
+x <- "2020-12-31"
+
+#Creates new dataframe 
+dfz <- orderModels[orderModels$name >= as.Date(n) & orderModels$name <= as.Date(x),]
+frst <- dfz$order[1] #Selects the first value of the list
+lst <- tail(dfz$order, n=1) # Selects the Last value on the list
+
+#Creates the point of refences, the last observation all the values are on Models
+ref <- as.numeric(models[[tail(dfz$order, n=1)]])
+
+taylor.diagram(ref,as.numeric(models[[dfz$order[2]]]), col=c,pch=1, cex=1.2, pcex = 2,
+               main = NULL,
+               xlab="Standart Deviation (lb/acre)",
+               pos.cor=TRUE,
+               show.gamma = T,
+               sd.arcs = T)
+
+
+#Adds diagrams
+for (i in 2:length(dfz$order)){
+  taylor.diagram(ref,as.numeric(models[[dfz$order[i]]]), add=TRUE,col=c,pch=i+13, cex=1.2,
+                 pcex = 2,main = NULL) 
+  #Cex = plotting text and symbols should be scaled relative to the default
+  #pcex = point expansion for the plotted points.
+}
+
+dev.off()
+
+
 #models <- data_select(df)
 
-Taylor <- function(n, x, c){
+Taylor <- function(n, x, c, main){
  
    #Where:
       #n = date start
@@ -183,35 +216,26 @@ Taylor <- function(n, x, c){
   lst <- tail(dfz$order, n=1) # Selects the Last value on the list
   
   #Creates the point of refences, the last observation all the values are on Models
-  ref <- models[[tail(dfz$order, n=1)]]
+  ref <- as.numeric(models[[tail(dfz$order, n=1)]])
   
   #Creates first diagram
-  oldpar<-taylor.diagram(ref,models[[dfz$order[1]]], col=c,pch=1, cex=1.2, pcex = 2,
-                         main = NULL,
+  taylor.diagram(ref,as.numeric(models[[dfz$order[1]]]), col=c,pch=1, cex=1.2, pcex = 2.5,
+                         main = main,
                          xlab="Standart Deviation (lb/acre)",
                          pos.cor=TRUE,
                          show.gamma = T,
-                         sd.arcs = T,
-                         col.smooth.lines="red")
-  text(x=rmse(models[[head(dfz$order, n=1)]], models[[tail(dfz$order, n=1)]])*2,
-       y=rmse(models[[head(dfz$order, n=1)]], models[[tail(dfz$order, n=1)]])*2,
-       pos=2, srt = 45,
-       label="RMSE",font=3,cex=0.8)
-  
+                         sd.arcs = T)
+
   
   #Adds diagrams
-  for (i in 2:tail(dfz$order, n=1)){
-    taylor.diagram(ref,models[[dfz$order[i]]], add=TRUE,col=c,pch=i+13, cex=1.2,
-                   pcex = 2,main = NULL) 
+  for (i in 2:length(dfz$order)){
+    taylor.diagram(ref,as.numeric(models[[dfz$order[i]]]), add=TRUE,col=c,pch=i+13, cex=1.2,
+                   pcex = 2.5,main = main) 
     #Cex = plotting text and symbols should be scaled relative to the default
     #pcex = point expansion for the plotted points.
   }
-
-  
+ 
 }
-
-rmse(models[[head(dfz$order, n=1)]], models[[tail(dfz$order, n=1)]])
-
 
 n <- "2020-06-01"
 x <- "2020-12-31"
@@ -232,32 +256,44 @@ models <- model_select(df)
 #Draw the Maps
 #Spring 2020
 png(file="C:/Users/aguilarcubilla/Desktop/ANPP_FORECAST_ALL_SP2020.png",
-    width=500, height=500)
+    width=500, height=500,res = 100, pointsize = 10)
 Sp20n <-"2020-01-01"
 Sp20x <- "2020-06-03"
-Taylor(Sp20n,Sp20x,"salmon")
+Taylor(Sp20n,Sp20x,"#DF5327","Spring 2020")
+text(x=90,
+     y=55,
+     pos=1, srt = 20,
+     label="RMSE (lb/acre)",font=3,cex=0.8)
 dfz <- Legends(Sp20n,Sp20x)
-legend(150,180,legend=substr(dfz$name, 6, 10) ,pch=c(1,15,16,17,18,19,20),col="salmon")
+legend(150,180,legend=substr(dfz$name, 6, 10) ,pch=c(1,15,16,17,18,19,20),col="#DF5327")
 dev.off()
 
 #Spring 2021
 png(file="C:/Users/aguilarcubilla/Desktop/ANPP_FORECAST_ALL_SP2021.png",
-    width=500, height=450)
-Sp21n <-"2021-01-01"
-Sp21x <- "2021-06-02"
-c <- "#826276"
-Taylor(Sp21n,Sp21x,c)
+    width=500, height=500,res = 100, pointsize = 10)
+Sp21n <-"2021-04-14"
+Sp21x <- "2021-06-01"
+c <- "#418AB3"
+Taylor(Sp21n,Sp21x,c,"Spring 2021")
+text(x=100,
+     y=100,
+     pos=1, srt = 30,
+     label="RMSE (lb/acre)",font=3,cex=0.8)
 dfz <- Legends(Sp21n,Sp21x)
 legend(225,225,legend=substr(dfz$name, 6, 10) ,pch=c(1,15,16,17),col=c)
 dev.off()
 
 #Spring 2022
 png(file="C:/Users/aguilarcubilla/Desktop/ANPP_FORECAST_ALL_SP2022.png",
-    width=500, height=450)
-Sp22n <-"2022-01-01"
+    width=500, height=500, res = 100, pointsize = 10)
+Sp22n <-"2022-04-05"
 Sp22x <- "2022-05-31"
-c <- "plum"
-Taylor(Sp22n,Sp22x,c)
+c <- "#838383"
+Taylor(Sp22n,Sp22x,c, "Spring 2022")
+text(x=90,
+     y=60,
+     pos=1, srt = 20,
+     label="RMSE (lb/acre)",font=3,cex=0.8)
 dfz <- Legends(Sp22n,Sp22x)
 legend(200,200,legend=substr(dfz$name, 6, 10) ,pch=c(1,15,16,17,18,19,20),col=c)
 dev.off()
@@ -265,11 +301,15 @@ dev.off()
 #####SUMMMER
 #Summer 2020
 png(file="C:/Users/aguilarcubilla/Desktop/ANPP_FORECAST_ALL_SU2020.png",
-    width=500, height=450)
-Su20n <-"2020-06-14"
+    width=500, height=500, res = 100, pointsize = 10)
+Su20n <-"2020-06-16"
 Su20x <- "2020-12-31"
-c <- "salmon"
-Taylor(Su20n,Su20x,c)
+c <- "#DF5327"
+Taylor(Su20n,Su20x,c, "Summer 2020")
+text(x=200,
+     y=220,
+     pos=1, srt = 20,
+     label="RMSE (lb/acre)",font=3,cex=0.8)
 dfz <- Legends(Su20n,Su20x)
 legend(380,450,legend=substr(dfz$name, 6, 10) ,pch=c(1,15,16,17,18,19,20),col=c)
 dev.off()
@@ -277,22 +317,30 @@ dev.off()
 
 #Summer 2021
 png(file="C:/Users/aguilarcubilla/Desktop/ANPP_FORECAST_ALL_SU2021.png",
-    width=500, height=450)
+    width=500, height=500, res = 100, pointsize = 10)
 Su21n <-"2021-06-14"
 Su21x <- "2021-12-31"
-c <- "#826276"
-Taylor(Su21n,Su21x,c)
+c <- "#418AB3"
+Taylor(Su21n,Su21x,c,"Summer 2021")
+text(x=200,
+     y=380,
+     pos=1, srt = 20,
+     label="RMSE (lb/acre)",font=3,cex=0.8)
 dfz <- Legends(Su21n,Su21x)
 legend(600,750,legend=substr(dfz$name, 6, 10) ,pch=c(1,15,16,17,18,19,20),col=c)
 dev.off()
 
 #Summer 2022
 png(file="C:/Users/aguilarcubilla/Desktop/ANPP_FORECAST_ALL_SU2022.png",
-    width=500, height=450)
+    width=500, height=500, res = 100, pointsize = 10)
 Su22n <-"2022-06-14"
 Su22x <- "2022-12-31"
-c <- "plum"
-Taylor(Su22n,Su22x,c)
+c <- "#838383"
+Taylor(Su22n,Su22x,c,"Summer 2022")
+text(x=340,
+     y=230,
+     pos=1, srt = 15,
+     label="RMSE (lb/acre)",font=3,cex=0.8)
 dfz <- Legends(Su22n,Su22x)
 legend(500,600,legend=substr(dfz$name, 6, 10) ,pch=c(1,15,16,17,18,19,20),col=c)
 dev.off()
@@ -307,15 +355,15 @@ models <- model_select(ANPP_FORECAST_W)
 #Spring 2020
 png(file="C:/Users/aguilarcubilla/Desktop/ANPP_FORECAST_W_SP2020_3.png",
     width=500, height=450)
-Taylor(Sp20n,Sp20x,"salmon")
+Taylor(Sp20n,Sp20x,"#DF5327")
 dfz <- Legends(Sp20n, Sp20x)
-legend(150,180,legend=substr(dfz$name, 6, 10) ,pch=c(1,15,16,17,18,19,20),col="salmon") +
+legend(150,180,legend=substr(dfz$name, 6, 10) ,pch=c(1,15,16,17,18,19,20),col="#DF5327") +
 dev.off()
 
 #Spring 2021
 png(file="C:/Users/aguilarcubilla/Desktop/ANPP_FORECAST_W_SP2021_3.png",
     width=500, height=450)
-c <- "#826276"
+c <- "#418AB3"
 Taylor(Sp21n,Sp21x,c)
 dfz <- Legends(Sp21n,Sp21x)
 legend(200,250,legend=substr(dfz$name, 6, 10) ,pch=c(1,15,16,17,18,19,20),col=c) +
@@ -324,7 +372,7 @@ dev.off()
 #Spring 2022
 png(file="C:/Users/aguilarcubilla/Desktop/ANPP_FORECAST_W_SP2022_3.png",
     width=500, height=450)
-c <- "plum"
+c <- "#838383"
 Taylor(Sp22n,Sp22x,c)
 dfz <- Legends(Sp22n,Sp22x)
 legend(120,150,legend=substr(dfz$name, 6, 10) ,pch=c(1,15,16,17,18,19,20),col=c)
@@ -334,7 +382,7 @@ dev.off()
 #Summer 2020
 png(file="C:/Users/aguilarcubilla/Desktop/ANPP_FORECAST_W_SU2020_3.png",
     width=500, height=450)
-c <- "salmon"
+c <- "#DF5327"
 Taylor(Su20n,Su20x,c)
 dfz <- Legends(Su20n,Su20x)
 legend(200,200,legend=substr(dfz$name, 6, 10) ,pch=c(1,15,16,17,18,19,20),col=c)
@@ -343,7 +391,7 @@ dev.off()
 #Summer 2021
 png(file="C:/Users/aguilarcubilla/Desktop/ANPP_FORECAST_W_SU2021_3.png",
     width=500, height=450)
-c <- "#826276"
+c <- "#418AB3"
 Taylor(S21n,Su21x,c)
 dfz <- Legends(S21n,Su21x)
 legend(250,250,legend=substr(dfz$name, 6, 10) ,pch=c(1,15,16,17,18,19,20),col=c)
@@ -352,7 +400,7 @@ dev.off()
 #Summer 2022
 png(file="C:/Users/aguilarcubilla/Desktop/ANPP_FORECAST_W_SU2022_3.png",
     width=500, height=450)
-c <- "plum"
+c <- "#838383"
 Taylor(Su22n,Su22x,c)
 dfz <- Legends(Su22n,Su22x)
 legend(240,250,legend=substr(dfz$name, 6, 10) ,pch=c(1,15,16,17,18,19,20),col=c)
@@ -366,15 +414,15 @@ models <- model_select(ANPP_FORECAST_T)
 #Spring 2020
 png(file="C:/Users/aguilarcubilla/Desktop/ANPP_FORECAST_T_SP2020_3.png",
     width=500, height=450)
-Taylor(Sp20n,Sp20x,"salmon")
+Taylor(Sp20n,Sp20x,"#DF5327")
 dfz <- Legends(Sp20n,Sp20x)
-legend(250,260,legend=substr(dfz$name, 6, 10) ,pch=c(1,15,16,17,18,19,20),col="salmon") +
+legend(250,260,legend=substr(dfz$name, 6, 10) ,pch=c(1,15,16,17,18,19,20),col="#DF5327") +
   dev.off()
 
 #Spring 2021
 png(file="C:/Users/aguilarcubilla/Desktop/ANPP_FORECAST_T_SP2021_3.png",
     width=500, height=450)
-c <- "#826276"
+c <- "#418AB3"
 Taylor(Sp21n,Sp21x,c)
 dfz <- Legends(Sp21n,Sp21x)
 legend(250,270,legend=substr(dfz$name, 6, 10) ,pch=c(1,15,16,17,18,19,20),col=c)
@@ -383,7 +431,7 @@ dev.off()
 #Spring 2022
 png(file="C:/Users/aguilarcubilla/Desktop/ANPP_FORECAST_T_SP2022_3.png",
     width=500, height=450)
-c <- "plum"
+c <- "#838383"
 Taylor(Sp22n,Sp22x,c)
 dfz <- Legends(Sp22n,Sp22x)
 legend(150,150,legend=substr(dfz$name, 6, 10) ,pch=c(1,15,16,17,18,19,20),col=c)
@@ -393,7 +441,7 @@ dev.off()
 #Summer 2020
 png(file="C:/Users/aguilarcubilla/Desktop/ANPP_FORECAST_T_SU2020_3.png",
     width=500, height=450)
-c <- "salmon"
+c <- "#DF5327"
 Taylor(Su20n,Su20x,c)
 dfz <- Legends(Su20n,Su20x)
 legend(250,250,legend=substr(dfz$name, 6, 10) ,pch=c(1,15,16,17,18,19,20),col=c)
@@ -402,7 +450,7 @@ dev.off()
 #Summer 2021
 png(file="C:/Users/aguilarcubilla/Desktop/ANPP_FORECAST_T_SU2021_3.png",
     width=500, height=450)
-c <- "#826276"
+c <- "#418AB3"
 Taylor(Su21n,Su21,c)
 dfz <- Legends(Su21n,Su21)
 legend(350,300,legend=substr(dfz$name, 6, 10) ,pch=c(1,15,16,17,18,19,20),col=c)
@@ -411,7 +459,7 @@ dev.off()
 #Summer 2022
 png(file="C:/Users/aguilarcubilla/Desktop/ANPP_FORECAST_T_SU2022_3.png",
     width=500, height=450)
-c <- "plum"
+c <- "#838383"
 Taylor(Su22n,Su22x,c)
 dfz <- Legends(Su22n,Su22x)
 legend(300,320,legend=substr(dfz$name, 6, 10) ,pch=c(1,15,16,17,18,19,20),col=c)
@@ -426,15 +474,15 @@ models <- model_select(ANPP_FORECAST_S)
 #Spring 2020
 png(file="C:/Users/aguilarcubilla/Desktop/ANPP_FORECAST_S_SP2020_3.png",
     width=500, height=450)
-Taylor(Sp20n,Sp20x,"salmon")
+Taylor(Sp20n,Sp20x,"#DF5327")
 dfz <- Legends(Sp20n,Sp20x)
-legend(160,170,legend=substr(dfz$name, 6, 10) ,pch=c(1,15,16,17,18,19,20),col="salmon") +
+legend(160,170,legend=substr(dfz$name, 6, 10) ,pch=c(1,15,16,17,18,19,20),col="#DF5327") +
 dev.off()
 
 #Spring 2021
 png(file="C:/Users/aguilarcubilla/Desktop/ANPP_FORECAST_S_SP2021_3.png",
     width=500, height=450)
-c <- "#826276"
+c <- "#418AB3"
 Taylor(Sp21n,Sp21x,c)
 dfz <- Legends(Sp21n,Sp21x)
 legend(400,400,legend=substr(dfz$name, 6, 10) ,pch=c(1,15,16,17,18,19,20),col=c)
@@ -443,7 +491,7 @@ dev.off()
 #Spring 2022
 png(file="C:/Users/aguilarcubilla/Desktop/ANPP_FORECAST_S_SP2022_3.png",
     width=500, height=450)
-c <- "plum"
+c <- "#838383"
 Taylor(Sp22n,Sp22x,c)
 dfz <- Legends(Sp22n,Sp22x)
 legend(170,170,legend=substr(dfz$name, 6, 10) ,pch=c(1,15,16,17,18,19,20),col=c)
@@ -453,7 +501,7 @@ dev.off()
 #Summer 2020
 png(file="C:/Users/aguilarcubilla/Desktop/ANPP_FORECAST_S_SU2020_3.png",
     width=500, height=450)
-c <- "salmon"
+c <- "#DF5327"
 Taylor(Su20n,Su20x ,c)
 dfz <- Legends(Su20n,Su20x)
 legend(400,400,legend=substr(dfz$name, 6, 10) ,pch=c(1,15,16,17,18,19,20),col=c)
@@ -462,7 +510,7 @@ dev.off()
 #Summer 2021
 png(file="C:/Users/aguilarcubilla/Desktop/ANPP_FORECAST_S_SU2021_3.png",
     width=500, height=450)
-c <- "#826276"
+c <- "#418AB3"
 Taylor(Su21n,Su21x,c)
 dfz <- Legends(Su21n,Su21x)
 legend(600,600,legend=substr(dfz$name, 6, 10) ,pch=c(1,15,16,17,18,19,20),col=c)
@@ -471,7 +519,7 @@ dev.off()
 #Summer 2022
 png(file="C:/Users/aguilarcubilla/Desktop/ANPP_FORECAST_S_SU2022_3.png",
     width=500, height=450)
-c <- "plum"
+c <- "#838383"
 Taylor(Su22n,Su22x,c)
 dfz <- Legends(Su22n,Su22x)
 legend(450,450,legend=substr(dfz$name, 6, 10) ,pch=c(1,15,16,17,18,19,20),col=c)
