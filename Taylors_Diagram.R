@@ -9,6 +9,8 @@ library(zoo) #Infrastructure for Regular and Irregular Time Series
 library(plotrix) #add talyor pltos
 library(Metrics) #has the rmse fucntion
 
+set.seed(108)
+
 ##########
 #Load and Select Data
 #COPY FROM CORREALTIONS_2020-2022
@@ -39,6 +41,8 @@ Forecast_Ratio <- left_join(forcasts, summerwinter, by = c("gridID" = "gridID"))
 Dates_List <- unique(Forecast_Ratio$Forecast)
 i1 <- order(as.Date(Dates_List, format = "%Y-%m-%d"))
 Dates_List[i1]
+
+
 
 
 #####
@@ -78,45 +82,75 @@ Forecast_Ratio <- do.call(rbind, dfx) #Finish de DF back to begigin
 rownames(Forecast_Ratio) <- NULL #Eliminates row names
 df <- split(Forecast_Ratio, Forecast_Ratio$Forecast)
 
+
+#Spiting data in regions
+ANPP_FORECAST_W <- subset(Forecast_Ratio, pptRatioSummerWinter < '0.8')
+ANPP_FORECAST_T <- Forecast_Ratio  %>%   filter(pptRatioSummerWinter >0.8 &  pptRatioSummerWinter < 1.2)
+ANPP_FORECAST_S <- subset(Forecast_Ratio, pptRatioSummerWinter > '1.2')
+
+
+#Test the functions
+n <- "2021-06-29"
+x <- "2021-06-01"
+df <- ANPP_FORECAST_W
+df <- df[df$Forecast >= as.Date(n) & df$Forecast <= as.Date(x),]
+df <- split(df, df$Forecast)
+mod <- lm(df[[n]]$NPP_predict_avg ~ df[[x]]$NPP_predict_avg)
+cf <- coef(mod)
+slope <- cf[2]
+std_error <- summary(mod)$coefficients[2, 2]
+intercept <- cf[1]
+r2 <- summary(mod)$r.squared
+bias <- mean(df[[n]]$NPP_predict_avg - df[[x]]$NPP_predict_avg, na.rm = TRUE)
+rmse <- rmse(df[[n]]$NPP_predict_avg, df[[x]]$NPP_predict_avg)
+p_value <- format(summary(mod)$coefficients[2, 4],scientific = TRUE, digits = 2) # extract p-value
+
+summary(mod)
+
 #########
 ##ALL Regions Stats
 
-Stats <- function(n,x){
+Stats <- function(data,n,x){
   
-  #N is the observation we are testing
-  #x is the final observation
-  df <- Forecast_Ratio
+  #Select only data from the preset dates
+    #N is the observation we are testing
+    #x is the final observation
+  df <- data
   df <- df[df$Forecast >= as.Date(n) & df$Forecast <= as.Date(x),]
   df <- split(df, df$Forecast)
   
-  #Check the lenght of variables in 3 years
-  # Creates an empty list for the for loop
-  r.lenght <- list()
+  #Starts internal function to calculate stats
   fc <- function(n, x) {
     
-    # Interpolate missing values to make lengths equal
-    df[[n]]$NPP_predict_avg <- na.approx(df[[n]]$NPP_predict_avg)
-    
-    #Calculate R2, standard deviation and bias
-    mean1 <-mean(df[[n]]$NPP_predict_avg)
-    mean2 <- mean(df[[x]]$NPP_predict_avg)
-    mod <- lm(df[[n]]$NPP_predict_avg ~ df[[x]]$NPP_predict_avg)
-    cf <- coef(mod)
-    Intercept <- cf[1]
-    Slope <- cf[2]
-    sd <- sd(df[[n]]$NPP_predict_avg - df[[x]]$NPP_predict_avg, na.rm = TRUE)
-    r2 <- cor(df[[n]]$NPP_predict_avg, df[[x]]$NPP_predict_avg)
-    
-    bias <- mean(df[[n]]$NPP_predict_avg - df[[x]]$NPP_predict_avg, na.rm = TRUE)
-    
+    #Calculate Descriptive Stats
+      mean <- mean(df[[n]]$NPP_predict_avg)
+      sd <- sd(df[[n]]$NPP_predict_avg, na.rm = TRUE)
+      count <- length(as.numeric(df[[n]]$NPP_predict_avg))
+      
+      
+    #Calculate model coefficients
+        mod <- lm(df[[n]]$NPP_predict_avg ~ df[[x]]$NPP_predict_avg)
+        cf <- coef(mod)
+          slope <- cf[2]
+          intercept <- cf[1]
+          r2 <- summary(mod)$r.squared
+          bias <- mean(df[[n]]$NPP_predict_avg - df[[x]]$NPP_predict_avg, na.rm = TRUE)
+          rmse <- rmse(df[[n]]$NPP_predict_avg, df[[x]]$NPP_predict_avg)
+          std_error <- summary(mod)$coefficients[2, 2]
+          p_value <- summary(mod)$coefficients[2, 4]
+          
     #Creates a matrix 
-    ANPP.r <- matrix(c(mean1,mean2,sd,bias,r2,Slope,Intercept), ncol = 7, byrow = TRUE)
-    colnames(ANPP.r) <- c("MEAN1","MEAN2",'SD','BIAS','R2',"Slope","Intercept")
-    ANPP.r <- as.data.frame(ANPP.r) 
+      ANPP.r <- matrix(c(mean,sd,count,slope,intercept,r2,std_error,bias,rmse,p_value), ncol = 10, byrow = TRUE)
+      colnames(ANPP.r) <- c("MEAN","SD","COUNT","SLOPE","INTERCEPT","R2","STD_ERROR","BIAS","RMSE","P_VALUE")
+      ANPP.r <- as.data.frame(ANPP.r) 
     
     # Create a new column "forecast" and "Compare" and assign the date from y[x]
-    ANPP.r$Forecast <- names(df)[n]
-    ANPP.r$FinalForecast <- names(df)[x]
+      ANPP.r$Forecast <- names(df)[n]
+      #ANPP.r$FinalForecast <- rep(names(df), each = nrow(df[[x]])))
+      
+      
+      # Reorder the columns
+      ANPP.r <- select(ANPP.r, Forecast,MEAN,SD,COUNT,SLOPE,INTERCEPT,R2,STD_ERROR,BIAS,RMSE,P_VALUE)
     
     
     return(ANPP.r)
@@ -128,26 +162,75 @@ Stats <- function(n,x){
   for(i in 1:length(df)) {
     r.list2[[i]] <- fc(i,length(df))
     
+    #Order Columns
+    
   }
   
   Stats <- bind_rows(r.list2)
   
 }
 
+
+####### STATS ALL THE REGIONS
 #Spring
-sp1 <- Stats("2020-04-01","2020-06-10")
-sp2 <- Stats("2021-04-01","2021-06-02")
-sp3 <- Stats("2022-04-01","2022-06-02")
+sp1 <- Stats(Forecast_Ratio,"2020-05-15","2020-06-02")
+sp2 <- Stats(Forecast_Ratio,"2021-04-14","2021-06-01")
+sp3 <- Stats(Forecast_Ratio,"2022-04-05","2022-05-31")
 
 Spring <- rbind(sp1, sp2, sp3)
-write.csv2()
 
 #Summer
-su1 <- Stats("2020-06-16","2020-09-02")
-su2 <- Stats("2021-06-15","2021-09-02")
-su3 <- Stats("2022-06-15","2022-09-02")
+su1 <- Stats(Forecast_Ratio,"2020-06-16","2020-09-01")
+su2 <- Stats(Forecast_Ratio,"2021-06-16","2021-08-24")
+su3 <- Stats(Forecast_Ratio,"2022-06-14","2022-09-01")
 
 Summer <- rbind(su1, su2, su3)
+
+####### STATS WINTER REGION
+#WR = Winter Region
+#Spring
+wsp1 <- Stats(ANPP_FORECAST_W,"2020-05-15","2020-06-02")
+wsp2 <- Stats(ANPP_FORECAST_W,"2021-04-14","2021-06-01")
+wsp3 <- Stats(ANPP_FORECAST_W,"2022-04-05","2022-05-31")
+
+WR_Spring <- rbind(sp1, sp2, sp3)
+
+#Summer
+wsu1 <- Stats(ANPP_FORECAST_W,"2020-06-16","2020-09-01")
+wsu2 <- Stats(ANPP_FORECAST_W,"2021-06-16","2021-08-24")
+wsu3 <- Stats(ANPP_FORECAST_W,"2022-06-14","2022-09-01")
+
+WR_Summer <- rbind(su1, su2, su3)
+
+####### STATS TRANSITION REGION
+#TR = Transition Region
+tsp1 <- Stats(Forecast_Ratio,"2020-05-15","2020-06-02")
+tsp2 <- Stats(Forecast_Ratio,"2021-04-14","2021-06-01")
+tsp3 <- Stats(Forecast_Ratio,"2022-04-05","2022-05-31")
+
+TR_Spring <- rbind(sp1, sp2, sp3)
+
+#Summer
+tsu1 <- Stats(Forecast_Ratio,"2020-06-16","2020-09-01")
+tsu2 <- Stats(Forecast_Ratio,"2021-06-16","2021-08-24")
+tsu3 <- Stats(Forecast_Ratio,"2022-06-14","2022-09-01")
+
+TR_Summer <- rbind(su1, su2, su3)
+
+
+####### STATS SUMMER REGION
+ssp1 <- Stats(Forecast_Ratio,"2020-05-15","2020-06-02")
+ssp2 <- Stats(Forecast_Ratio,"2021-04-14","2021-06-01")
+ssp3 <- Stats(Forecast_Ratio,"2022-04-05","2022-05-31")
+
+SR_Spring <- rbind(sp1, sp2, sp3)
+
+#Summer
+ssu1 <- Stats(Forecast_Ratio,"2020-06-16","2020-09-01")
+ssu2 <- Stats(Forecast_Ratio,"2021-06-16","2021-08-24")
+ssu3 <- Stats(Forecast_Ratio,"2022-06-14","2022-09-01")
+
+SR_Summer <- rbind(su1, su2, su3)
 
 #####
 #Select data to add to the taylor diagram
@@ -156,15 +239,6 @@ Summer <- rbind(su1, su2, su3)
 df <- Forecast_Ratio
 df <- split(df, df$Forecast)
 
-#Spiting data in regions
-ANPP_FORECAST_W <- subset(Forecast_Ratio, pptRatioSummerWinter < '0.8') 
-ANPP_FORECAST_W <- split(ANPP_FORECAST_W, ANPP_FORECAST_W$Forecast)
-
-ANPP_FORECAST_T <- Forecast_Ratio  %>%   filter(pptRatioSummerWinter >0.8 &  pptRatioSummerWinter < 1.2)
-ANPP_FORECAST_T <- split(ANPP_FORECAST_T, ANPP_FORECAST_T$Forecast)
-
-ANPP_FORECAST_S <- subset(Forecast_Ratio, pptRatioSummerWinter > '1.2')
-ANPP_FORECAST_S <- split(ANPP_FORECAST_S, ANPP_FORECAST_S$Forecast)
 
 model_select <- function(df){
 #Where:
@@ -188,7 +262,8 @@ for(i in 1:length(df)) {
 return(models)
 }
 
-
+#############
+################## TAYLOR PLOTS
 
 Taylor <- function(n, x, c, main){
  
@@ -247,12 +322,13 @@ png(file="images/ANPP_FORECAST_ALL_SP2020.png",
 Sp20n <-"2020-01-01"
 Sp20x <- "2020-06-03"
 Taylor(Sp20n,Sp20x,"#DF5327","Spring 2020")
-text(x=85,
-     y=56,
-     pos=1, srt = 15,
+#add RMSE label
+text(x=95,
+     y=58,
+     pos=1, srt = 15, #str is the angle
      label="RMSE (lb/acre)",font=3,cex=0.8)
 dfz <- Legends(Sp20n,Sp20x)
-legend(140,130,legend=substr(dfz$name, 6, 10) ,pch=c(1,15,16,17,18,19,20),col="#DF5327")
+legend(155,160,legend=substr(dfz$name, 6, 10) ,pch=c(1,15,16,17,18,19,20),col="#DF5327")
 dev.off()
 
 #Spring 2021
@@ -262,12 +338,12 @@ Sp21n <-"2021-04-14"
 Sp21x <- "2021-06-01"
 c <- "#418AB3"
 Taylor(Sp21n,Sp21x,c,"Spring 2021")
-text(x=95,
-     y=55,
+text(x=110,
+     y=100,
      pos=1, srt = 20,
      label="RMSE (lb/acre)",font=3,cex=0.8)
 dfz <- Legends(Sp21n,Sp21x)
-legend(155,160,legend=substr(dfz$name, 6, 10) ,pch=c(1,15,16,17),col=c)
+legend(200,240,legend=substr(dfz$name, 6, 10) ,pch=c(1,15,16,17),col=c)
 dev.off()
 
 #Spring 2022
@@ -277,12 +353,12 @@ Sp22n <-"2022-04-05"
 Sp22x <- "2022-05-31"
 c <- "#838383"
 Taylor(Sp22n,Sp22x,c, "Spring 2022")
-text(x=60,
-     y=53,
+text(x=90,
+     y=58,
      pos=1, srt = 16,
      label="RMSE (lb/acre)",font=3,cex=0.8)
 dfz <- Legends(Sp22n,Sp22x)
-legend(110,120,legend=substr(dfz$name, 6, 10) ,pch=c(1,15,16,17,18,19,20),col=c)
+legend(190,200,legend=substr(dfz$name, 6, 10) ,pch=c(1,15,16,17,18,19,20),col=c)
 dev.off()
 
 #####SUMMMER
@@ -290,31 +366,30 @@ dev.off()
 png(file="images/ANPP_FORECAST_ALL_SU2020.png",
     width=1000, height=1000, pointsize = 25)
 Su20n <-"2020-06-16"
-Su20x <- "2020-12-31"
+Su20x <- "2020-09-01"
 c <- "#DF5327"
 Taylor(Su20n,Su20x,c, "Summer 2020")
-text(x=100,
-     y=105,
-     pos=1, srt = 15,
+text(x=220,
+     y=216,
+     pos=1, srt = 11,
      label="RMSE (lb/acre)",font=3,cex=0.8)
 dfz <- Legends(Su20n,Su20x)
-legend(200,200,legend=substr(dfz$name, 6, 10) ,pch=c(1,15,16,17,18,19,20),col=c)
+legend(400,400,legend=substr(dfz$name, 6, 10) ,pch=c(1,15,16,17,18,19,20),col=c)
 dev.off()
-
 
 #Summer 2021
 png(file="images/ANPP_FORECAST_ALL_SU2021.png",
     width=1000, height=1000, pointsize = 25)
-Su21n <-"2021-06-14"
-Su21x <- "2021-12-31"
+Su21n <-"2021-06-16"
+Su21x <- "2021-08-24"
 c <- "#418AB3"
 Taylor(Su21n,Su21x,c,"Summer 2021")
-text(x=120,
-     y=100,
+text(x=250,
+     y=400,
      pos=1, srt = 25,
      label="RMSE (lb/acre)",font=3,cex=0.8)
 dfz <- Legends(Su21n,Su21x)
-legend(225,240,legend=substr(dfz$name, 6, 10) ,pch=c(1,15,16,17,18,19,20),col=c)
+legend(600,600,legend=substr(dfz$name, 6, 10) ,pch=c(1,15,16,17,18,19,20),col=c)
 dev.off()
 
 #Summer 2022
@@ -329,14 +404,14 @@ text(x=300,
      pos=1, srt = 20,
      label="RMSE (lb/acre)",font=3,cex=0.8)
 dfz <- Legends(Su22n,Su22x)
-legend(520,600,legend=substr(dfz$name, 6, 10) ,pch=c(1,15,16,17,18,19,20),col=c)
+legend(550,550,legend=substr(dfz$name, 6, 10) ,pch=c(1,15,16,17,18,19,20),col=c)
 dev.off()
-
 
 ######
 ############DRAW BY ZONE
 #####
 ##WINTER
+ANPP_FORECAST_W <- split(ANPP_FORECAST_W, ANPP_FORECAST_W$Forecast)
 models <- model_select(ANPP_FORECAST_W)
 #Draw the Maps
 #Spring 2020
@@ -361,7 +436,7 @@ text(x=90,
      pos=1, srt = 25,
      label="RMSE (lb/acre)",font=3,cex=0.8)
 dfz <- Legends(Sp21n,Sp21x)
-legend(155,160, legend=substr(dfz$name, 6, 10) ,pch=c(1,15,16,17,18,19,20),col=c) +
+legend(155, 160, legend=substr(dfz$name, 6, 10) ,pch=c(1,15,16,17,18,19,20),col=c) 
 dev.off()
 
 #Spring 2022
