@@ -9,5 +9,5 @@ lm_ANPP_NDVI _2000to2020	R file		Linear Models of ANNP and NDVI
 Taylors_Diagram			R file		ALL Taylor Diagrams
 Taylors_Diagram_withBias	R file		TESTING: Adding BIas to Taylor Diagrams
 XYZ_MapBuilder			R file		Draw a map with ANPP of arizona and new mexico with coordiantes and a value
-XYZ_MapBuilder_AnomalyMaps	R file		Draw Anomaly Maps with coordinates and a z value
-XYZ_MapBuilder_Maps		R file		Base Maps
+XYZ_MapBuilder_AnomalyMaps	R file		Maps that show difference of ANPP bettwen two forecast dates
+XYZ_MapBuilder_Maps		R file		Maps with legeneds and color as Grass-Cast, added Tribal Nations maps

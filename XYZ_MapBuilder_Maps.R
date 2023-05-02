@@ -16,11 +16,18 @@ library(akima) #Interpolation of Irregularly and Regularly Spaced Data
 library(scico) #Scientific colour map palettes
 library(ggsn) #Arrow and scale for GGPLOT MAPS
 library(ggspatial) #Spatial data plus the power of the ggplot2 framework means easier mapping
+library(tigris) #spatial data from the Census Bureau, has tribal nations shp.
+
 
 ################
 #Load Data frame
 Forecast_202122 <- read.csv("data/Forecast_Ratio.csv")
 unique(Forecast_202122$Forecast)
+
+#Fixing the no data 
+# replace -999 with 31 using mutate_all()
+Forecast_202122 <- mutate_all(Forecast_202122, ~ifelse(. == -999, 31, .))
+
 
 Dates_List <- unique(Forecast_202122$Forecast)
 i1 <- order(as.Date(Dates_List, format = "%Y-%m-%d"))
@@ -32,8 +39,8 @@ check_data <- subset(Forecast_202122, Forecast_202122$Forecast == "2021-06-16")
 hist(check_data$pct_diffNPP_avg)
 
  
-one_download <- read.csv(file = "data/ANPP_forecast_summary_sw_2022_June_14.csv", head = TRUE, sep=",") %>% 
-  subset(select=c("gridID","Year","Forecast","NPP_predict_below","NPP_predict_avg","NPP_predict_above","Order","pct_diffNPP_avg"))
+#one_download <- read.csv(file = "data/ANPP_forecast_summary_sw_2022_June_14.csv", head = TRUE, sep=",") %>% 
+ # subset(select=c("gridID","Year","Forecast","NPP_predict_below","NPP_predict_avg","NPP_predict_above","Order","pct_diffNPP_avg"))
 
 
 ##########
@@ -66,7 +73,26 @@ other_states_5 <- states_sf %>% filter(str_detect(ID, c("california")))
 other_states_6 <- states_sf %>% filter(str_detect(ID, c("oklahoma")))
 other_states <- rbind(other_states_1, other_states_2,other_states_3,other_states_4,other_states_5,other_states_6)
 
+#Tribal Nations
+nat <- native_areas(cb = TRUE)
 
+sf1 <- south_west_c
+sf2 <- st_transform(south_west_c, st_crs(nat))
+sym_diff <- st_sym_difference(nat, sf2)
+
+plot(sym_diff)
+crs(nat)
+crs(south_west_c)
+crs(sf2)
+
+ggplot() +
+  geom_sf(data = sf1, fill = "red") +
+  geom_sf(data = sf2, fill = "blue") +
+  coord_sf(xlim=c(-103.0275,-114.75),  # southwest
+         ylim=c(31.36026, 37.05657)) +
+  geom_sf(data = sym_diff, fill = NA) +
+  theme_void()
+  
 ##########
 ############Function
 
@@ -112,10 +138,16 @@ map_Anomally <- function(date,season,measure,unit,colname) {
     #Add Spatial Elements
     geom_sf(data = south_west_merged, fill = NA, color = "white", linewidth = 2, linetype = "solid") +
     geom_sf(data = south_west_s, fill = NA, color=alpha("#000000",1), linewidth= 1.4,linetype = "solid") +
-    geom_sf(data = south_west_c, fill = NA, color=alpha("#000000",0.2), linewidth=0.8,linetype = "dotted") +
+    #geom_sf(data = south_west_c, fill = NA, color=alpha("#000000",0.6), linewidth=0.8,linetype = "solid") +
+    
+    ##Add Tribal Nations Maps
+    geom_sf(data = sym_diff, color=alpha("#000000",0.6), fill=NA, linewidth=0.8,linetype = "solid") +
+    
+    #Add the states in the background
     geom_sf(data = other_states, fill = "grey", color=alpha("grey40",0.4), linewidth=0.5,linetype = "dashed") +
     theme_minimal() +
     
+
     
     #Add Text Elements 
     xlab(NULL) + 
@@ -180,6 +212,8 @@ map_Anomally <- function(date,season,measure,unit,colname) {
 
 ############
 #Result
+# I choose to get a for loop for all the maps at once.
+#I add what Season in the parameters, and then, erase the other season. 
 
 for (i in 1:length(Forecast_List)){
   
