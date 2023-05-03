@@ -38,11 +38,6 @@ Forecast_List <- Dates_List[i1]
 check_data <- subset(Forecast_202122, Forecast_202122$Forecast == "2021-06-16")
 hist(check_data$pct_diffNPP_avg)
 
- 
-#one_download <- read.csv(file = "data/ANPP_forecast_summary_sw_2022_June_14.csv", head = TRUE, sep=",") %>% 
- # subset(select=c("gridID","Year","Forecast","NPP_predict_below","NPP_predict_avg","NPP_predict_above","Order","pct_diffNPP_avg"))
-
-
 ##########
 ###################          CREATE SPATIAL OBJECTS
 ## Call features from state and county
@@ -85,6 +80,7 @@ sf_c <- st_transform(south_west_c, st_crs(nat))
 nat <- st_crop(nat, st_bbox(sf2))
 #Merge all the shapes in nat to use in difference
 nat_union <- st_union(nat)
+nat_union <- st_simplify(nat_union, dTolerance = 1000)
 
 #Conserve only the districts that are outside Tribal Nations
 diff_c <- st_difference(sf_c,nat_union)
@@ -142,7 +138,7 @@ map_annp <- function(date,season,measure,unit,colname) {
     #Add Spatial Elements
     geom_sf(data = south_west_merged, fill = NA, color = "white", linewidth = 2, linetype = "solid") +
     geom_sf(data = south_west_s, fill = NA, color=alpha("#000000",1), linewidth= 1.4,linetype = "solid") +
-    geom_sf(data = diff_c, fill = NA, color=alpha("#000000",0.6), linewidth=0.5,linetype = "solid") +
+    geom_sf(data = diff_c, fill = NA, color=alpha("#000000",0.6), linewidth=0.5,linetype = "dotted") +
     
     ##Add Tribal Nations Maps
     geom_sf(data = nat, color=alpha("grey",0.8), fill=NA, linewidth=0.5,linetype = "solid") +
@@ -215,8 +211,6 @@ map_annp <- function(date,season,measure,unit,colname) {
 }
 
 
-map_annp(Forecast_List[1],"SPRING FORECAST","ANPP","(%)","pct_diffNPP_avg")
-
 ############
 #Result
 # I choose to get a for loop for all the maps at once.
@@ -224,7 +218,7 @@ map_annp(Forecast_List[1],"SPRING FORECAST","ANPP","(%)","pct_diffNPP_avg")
 
 for (i in 1:length(Forecast_List)){
   
-  map_annp(Forecast_List[i],"SPRING FORECAST","ANPP","(%)","pct_diffNPP_avg")
+  map_annp(Forecast_List[i],"SUMMER FORECAST","ANPP","(%)","pct_diffNPP_avg")
   
   
 }
