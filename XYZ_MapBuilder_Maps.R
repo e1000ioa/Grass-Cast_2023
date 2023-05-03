@@ -73,30 +73,34 @@ other_states_5 <- states_sf %>% filter(str_detect(ID, c("california")))
 other_states_6 <- states_sf %>% filter(str_detect(ID, c("oklahoma")))
 other_states <- rbind(other_states_1, other_states_2,other_states_3,other_states_4,other_states_5,other_states_6)
 
-#Tribal Nations
-nat <- native_areas(cb = TRUE)
+### PREPAPRE Tribal Nations MAPS
 
-sf1 <- south_west_c
-sf2 <- st_transform(south_west_c, st_crs(nat))
-sym_diff <- st_sym_difference(nat, sf2)
+#Call the native nations map 
+nat <- tigris::native_areas(cb = TRUE)
 
-plot(sym_diff)
-crs(nat)
-crs(south_west_c)
-crs(sf2)
+#Transform the southwest counties in the same csr
+sf_c <- st_transform(south_west_c, st_crs(nat))
 
+#Crop the extend of the of the Tribal nations to the southwest 
+nat <- st_crop(nat, st_bbox(sf2))
+#Merge all the shapes in nat to use in difference
+nat_union <- st_union(nat)
+
+#Conserve only the districts that are outside Tribal Nations
+diff_c <- st_difference(sf_c,nat_union)
+
+
+#Test the map
 ggplot() +
-  geom_sf(data = sf1, fill = "red") +
-  geom_sf(data = sf2, fill = "blue") +
-  coord_sf(xlim=c(-103.0275,-114.75),  # southwest
-         ylim=c(31.36026, 37.05657)) +
-  geom_sf(data = sym_diff, fill = NA) +
+  #geom_sf(data = sf_c, fill = "red", color="gold") +
+  geom_sf(data = nat, fill = "blue", color="black") +
+  geom_sf(data = diff_c, color = "black", fill="yellow") +
   theme_void()
   
 ##########
 ############Function
 
-map_Anomally <- function(date,season,measure,unit,colname) {
+map_annp <- function(date,season,measure,unit,colname) {
   
   df <- Forecast_202122 %>% 
   filter(Forecast == date) %>%
@@ -138,10 +142,10 @@ map_Anomally <- function(date,season,measure,unit,colname) {
     #Add Spatial Elements
     geom_sf(data = south_west_merged, fill = NA, color = "white", linewidth = 2, linetype = "solid") +
     geom_sf(data = south_west_s, fill = NA, color=alpha("#000000",1), linewidth= 1.4,linetype = "solid") +
-    #geom_sf(data = south_west_c, fill = NA, color=alpha("#000000",0.6), linewidth=0.8,linetype = "solid") +
+    geom_sf(data = diff_c, fill = NA, color=alpha("#000000",0.6), linewidth=0.5,linetype = "solid") +
     
     ##Add Tribal Nations Maps
-    geom_sf(data = sym_diff, color=alpha("#000000",0.6), fill=NA, linewidth=0.8,linetype = "solid") +
+    geom_sf(data = nat, color=alpha("grey",0.8), fill=NA, linewidth=0.5,linetype = "solid") +
     
     #Add the states in the background
     geom_sf(data = other_states, fill = "grey", color=alpha("grey40",0.4), linewidth=0.5,linetype = "dashed") +
@@ -210,6 +214,9 @@ map_Anomally <- function(date,season,measure,unit,colname) {
   return(b)
 }
 
+
+map_annp(Forecast_List[1],"SPRING FORECAST","ANPP","(%)","pct_diffNPP_avg")
+
 ############
 #Result
 # I choose to get a for loop for all the maps at once.
@@ -217,7 +224,7 @@ map_Anomally <- function(date,season,measure,unit,colname) {
 
 for (i in 1:length(Forecast_List)){
   
-  map_Anomally(Forecast_List[i],"SPRING FORECAST","ANPP","(%)","pct_diffNPP_avg")
+  map_annp(Forecast_List[i],"SPRING FORECAST","ANPP","(%)","pct_diffNPP_avg")
   
   
 }
