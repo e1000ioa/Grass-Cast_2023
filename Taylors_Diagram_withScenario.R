@@ -42,12 +42,9 @@ Dates_List <- unique(Forecast_Ratio$Forecast)
 i1 <- order(as.Date(Dates_List, format = "%Y-%m-%d"))
 Dates_List[i1]
 
-
-
-
 #####
-#Make the lenghts of the list match
-#Find the unique id's bettewn the unmacthed len list
+#Make the lengths of the list match
+#Find the unique id's bettewn the unmatched len list
 df <- Forecast_Ratio
 df <- split(df, df$Forecast)
 SameID <- intersect(df[["2022-04-19"]]$gridID,df[["2022-05-03"]]$gridID)
@@ -88,73 +85,62 @@ ANPP_FORECAST_W <- subset(Forecast_Ratio, pptRatioSummerWinter < '0.8')
 ANPP_FORECAST_T <- Forecast_Ratio  %>%   filter(pptRatioSummerWinter >0.8 &  pptRatioSummerWinter < 1.2)
 ANPP_FORECAST_S <- subset(Forecast_Ratio, pptRatioSummerWinter > '1.2')
 
+##############################################################################
+########Stats Table to check Taylor Plots
 
-
-Stats <- function(data,n,x,scenario){
-  
-  #Select only data from the preset dates
-    #N is the observation we are testing
-    #x is the final observation
-
-  df <- df[data$Forecast >= as.Date(n) & data$Forecast <= as.Date(x),]
+Stats <- function(data, n, x, scenario) {
+  df <- data[data$Forecast >= as.Date(n) & data$Forecast <= as.Date(x), ]
   df <- split(df, df$Forecast)
   
-  #Starts internal function to calculate stats
   fc <- function(n, x, scenario) {
+    df_n <- df[[n]]
+    df_x <- df[[x]]
     
-    #Scenario Numbers meaning 
-    #4 <- "NPP_predict_below"
-    #5 <- "NPP_predict_avg"
-    #6 <- "NPP_predict_above" 
+    mean <- mean(df_n[[scenario]])
+    sd <- sd(df_n[[scenario]], na.rm = TRUE)
+    count <- length(df_n[[scenario]])
     
-    #Calculate Descriptive Stats
-      mean <- format(mean(df[[n]][,scenario]),digits=6)
-      sd <- format(sd(df[[n]][,scenario], na.rm = TRUE),digits=6)
-      count <- length(as.numeric(df[[n]][,scenario]))
-      
-      
-    #Calculate model coefficients
-        mod <- lm(df[[n]][, scenario] ~ df[[x]][,scenario])
-        cf <- coef(mod)
-          slope <- format(cf[2],digits=4)
-          intercept <- format(format(cf[1],3),digits=6)
-          r2 <- format(summary(mod)$r.squared,digits=4)
-          bias <- format(mean(df[[n]][,scenario] - df[[x]][,scenario], na.rm = TRUE),digits=5)
-          rmse <- format(rmse(df[[n]][,scenario], df[[x]][,scenario]),digits=5)
-          std_error <- format(summary(mod)$coefficients[2, 2],digits=4)
-          p_value <- format.pval(summary(mod)$coefficients[2, 4])
-          
-    #Creates a matrix 
-      ANPP.r <- matrix(c(mean,sd,count,slope,intercept,r2,std_error,bias,rmse,p_value), ncol = 10, byrow = TRUE)
-      colnames(ANPP.r) <- c("MEAN","SD","COUNT","SLOPE","INTERCEPT","R2","STD_ERROR","BIAS","RMSE","P_VALUE")
-      ANPP.r <- as.data.frame(ANPP.r) 
+    mod <- lm(df_n[[scenario]] ~ df_x[[scenario]])
+    cf <- coef(mod)
+    slope <- cf[2]
+    intercept <- cf[1]
+    r2 <- summary(mod)$r.squared
+    bias <- mean(df_n[[scenario]] - df_x[[scenario]], na.rm = TRUE)
+    rmse <- sqrt(mean((df_n[[scenario]] - df_x[[scenario]])^2))
+    std_error <- summary(mod)$coefficients[2, 2]
+    p_value <- format.pval(summary(mod)$coefficients[2, 4])
     
-    # Create a new column "forecast" and "Compare" and assign the date from y[x]
-      ANPP.r$Forecast <- names(df)[n]
-      #ANPP.r$FinalForecast <- rep(names(df), each = nrow(df[[x]])))
-      
-      
-      # Reorder the columns
-      ANPP.r <- select(ANPP.r, Forecast,MEAN,SD,COUNT,SLOPE,INTERCEPT,R2,STD_ERROR,BIAS,RMSE,P_VALUE)
+    ANPP.r <- data.frame(
+      MEAN = mean,
+      SD = sd,
+      COUNT = count,
+      SLOPE = slope,
+      INTERCEPT = intercept,
+      R2 = r2,
+      STD_ERROR = std_error,
+      BIAS = bias,
+      RMSE = rmse,
+      P_VALUE = p_value
+    )
     
+    ANPP.r$Forecast <- names(df)[n]
+    
+    ANPP.r <- ANPP.r[, c("Forecast", "MEAN", "SD", "COUNT", "SLOPE", "INTERCEPT", "R2", "STD_ERROR", "BIAS", "RMSE", "P_VALUE")]
     
     return(ANPP.r)
   }
   
+  r.list2 <- lapply(seq_along(df), fc, x = length(df), scenario = scenario)
+  Stats <- do.call(rbind, r.list2)
   
-  r.list2 <- list()
+  # Format numeric columns to display 3 decimal places
+  numeric_columns <- names(Stats)[sapply(Stats, is.numeric)]
+  Stats[numeric_columns] <- lapply(Stats[numeric_columns], function(x) sprintf("%.3f", x))
   
-  for(i in 1:length(df)) {
-    r.list2[[i]] <- fc(i,length(df),scenario)
-    
-    #Order Columns
-    
-  }
-  
-  Stats <- bind_rows(r.list2)
-  
+  return(Stats)
 }
 
+##Calculates Stats for each Season and Scenario
 
 getSpringStats <- function(scenario,nom) {
   n2020 <- Stats(Forecast_Ratio, "2020-05-15","2020-06-02", scenario)
@@ -191,119 +177,174 @@ SummerC <- getSummerStats(6,"Abv")
 
 Summer <- rbind(SummerB, SummerA, SummerC)
 
-####### STATS WINTER REGION
-#WR = Winter Region
-#Spring
-wsp1 <- Stats(ANPP_FORECAST_W,"2020-05-15","2020-06-02")
-wsp2 <- Stats(ANPP_FORECAST_W,"2021-04-14","2021-06-01")
-wsp3 <- Stats(ANPP_FORECAST_W,"2022-04-05","2022-05-31")
+####### STATS WINTER REGION ALL SCNEARIOS (SR = Winter Region)
+#Sring_SR
+getSpringSRStats <- function(scenario,nom) {
+  n2020 <- Stats(ANPP_FORECAST_W, "2020-05-15","2020-06-02", scenario)
+  n2021 <- Stats(ANPP_FORECAST_W, "2021-04-14", "2021-06-01", scenario)
+  n2022 <- Stats(ANPP_FORECAST_W, "2022-04-05", "2022-05-31", scenario)
+  
+  Spring <- rbind(n2020, n2021, n2022)
+  Spring <- data.frame(append(Spring, c(Scenario = nom), after = 1))
+  
+  return(Spring)
+}
 
-WR_Spring <- rbind(sp1, sp2, sp3)
+Spring_SR <- getSpringSRStats(4,"Blw") 
+Spring_SR <- rbind(Spring_SR, getSpringSRStats(5,"Avg"))
+Spring_SR <- rbind(Spring_SR, getSpringSRStats(6,"Abv"))
 
-#Summer
-wsu1 <- Stats(ANPP_FORECAST_S,"2020-06-16","2020-09-01")
-wsu2 <- Stats(ANPP_FORECAST_S,"2021-06-16","2021-08-24")
-wsu3 <- Stats(ANPP_FORECAST_S,"2022-06-14","2022-09-01")
+###SUMMER 
+getSummerSRStats <- function(scenario,nom) {
+  n2020 <- Stats(ANPP_FORECAST_W, "2020-06-16","2020-09-01", scenario)
+  n2021 <- Stats(ANPP_FORECAST_W, "2021-06-16","2021-08-24", scenario)
+  n2022 <- Stats(ANPP_FORECAST_W, "2022-06-14","2022-09-01", scenario)
+  
+  Summer <- rbind(n2020, n2021, n2022)
+  Summer <- data.frame(append(Summer, c(Scenario = nom), after = 1))
+  
+  return(Summer)
+}
 
-WR_Summer <- rbind(su1, su2, su3)
+Summer_SR <- getSummerSRStats(4,"Blw") 
+Summer_SR <- rbind(Summer_SR, getSummerSRStats(5,"Avg"))
+Summer_SR <- rbind(Summer_SR, getSummerSRStats(6,"Abv"))
 
-####### STATS TRANSITION REGION
-#TR = Transition Region
-tsp1 <- Stats(Forecast_Ratio,"2020-05-15","2020-06-02")
-tsp2 <- Stats(Forecast_Ratio,"2021-04-14","2021-06-01")
-tsp3 <- Stats(Forecast_Ratio,"2022-04-05","2022-05-31")
 
-TR_Spring <- rbind(sp1, sp2, sp3)
+####### STATS SRANSITION REGION
+#SR = Transition Region
+#Sring_SR
+getSpringSRStats <- function(scenario,nom) {
+  n2020 <- Stats(ANPP_FORECAST_T, "2020-05-15","2020-06-02", scenario)
+  n2021 <- Stats(ANPP_FORECAST_T, "2021-04-14", "2021-06-01", scenario)
+  n2022 <- Stats(ANPP_FORECAST_T, "2022-04-05", "2022-05-31", scenario)
+  
+  Spring <- rbind(n2020, n2021, n2022)
+  Spring <- data.frame(append(Spring, c(Scenario = nom), after = 1))
+  
+  return(Spring)
+}
 
-#Summer
-tsu1 <- Stats(Forecast_Ratio,"2020-06-16","2020-09-01")
-tsu2 <- Stats(Forecast_Ratio,"2021-06-16","2021-08-24")
-tsu3 <- Stats(Forecast_Ratio,"2022-06-14","2022-09-01")
+Spring_SR <- getSpringSRStats(4,"Blw") 
+Spring_SR <- rbind(Spring_SR, getSpringSRStats(5,"Avg"))
+Spring_SR <- rbind(Spring_SR, getSpringSRStats(6,"Abv"))
 
-TR_Summer <- rbind(su1, su2, su3)
+###SUMMER 
+getSummerSRStats <- function(scenario,nom) {
+  n2020 <- Stats(ANPP_FORECAST_T, "2020-06-16","2020-09-01", scenario)
+  n2021 <- Stats(ANPP_FORECAST_T, "2021-06-16","2021-08-24", scenario)
+  n2022 <- Stats(ANPP_FORECAST_T, "2022-06-14","2022-09-01", scenario)
+  
+  Summer <- rbind(n2020, n2021, n2022)
+  Summer <- data.frame(append(Summer, c(Scenario = nom), after = 1))
+  
+  return(Summer)
+}
+
+Summer_SR <- getSummerSRStats(4,"Blw") 
+Summer_SR <- rbind(Summer_SR, getSummerSRStats(5,"Avg"))
+Summer_SR <- rbind(Summer_SR, getSummerSRStats(6,"Abv"))
 
 
 ####### STATS SUMMER REGION
-ssp1 <- Stats(Forecast_Ratio,"2020-05-15","2020-06-02")
-ssp2 <- Stats(Forecast_Ratio,"2021-04-14","2021-06-01")
-ssp3 <- Stats(Forecast_Ratio,"2022-04-05","2022-05-31")
+#Sring_SR
+getSpringSRStats <- function(scenario,nom) {
+  n2020 <- Stats(ANPP_FORECAST_S, "2020-05-15","2020-06-02", scenario)
+  n2021 <- Stats(ANPP_FORECAST_S, "2021-04-14", "2021-06-01", scenario)
+  n2022 <- Stats(ANPP_FORECAST_S, "2022-04-05", "2022-05-31", scenario)
+  
+  Spring <- rbind(n2020, n2021, n2022)
+  Spring <- data.frame(append(Spring, c(Scenario = nom), after = 1))
+  
+  return(Spring)
+}
 
-SR_Spring <- rbind(sp1, sp2, sp3)
+Spring_SR <- getSpringSRStats(4,"Blw") 
+Spring_SR <- rbind(Spring_SR, getSpringSRStats(5,"Avg"))
+Spring_SR <- rbind(Spring_SR, getSpringSRStats(6,"Abv"))
 
-#Summer
-ssu1 <- Stats(Forecast_Ratio,"2020-06-16","2020-09-01")
-ssu2 <- Stats(Forecast_Ratio,"2021-06-16","2021-08-24")
-ssu3 <- Stats(Forecast_Ratio,"2022-06-14","2022-09-01")
+###SUMMER 
+getSummerSRStats <- function(scenario,nom) {
+  n2020 <- Stats(ANPP_FORECAST_S, "2020-06-16","2020-09-01", scenario)
+  n2021 <- Stats(ANPP_FORECAST_S, "2021-06-16","2021-08-24", scenario)
+  n2022 <- Stats(ANPP_FORECAST_S, "2022-06-14","2022-09-01", scenario)
+  
+  Summer <- rbind(n2020, n2021, n2022)
+  Summer <- data.frame(append(Summer, c(Scenario = nom), after = 1))
+  
+  return(Summer)
+}
 
-SR_Summer <- rbind(su1, su2, su3)
+Summer_SR <- getSummerSRStats(4,"Blw") 
+Summer_SR <- rbind(Summer_SR, getSummerSRStats(5,"Avg"))
+Summer_SR <- rbind(Summer_SR, getSummerSRStats(6,"Abv"))
 
-#####
-#Select data to add to the taylor diagram
+
+##############################################################################
+#Select data to add to the Taylor Diagram
 
 #All regions as one
 df <- Forecast_Ratio
 df <- split(df, df$Forecast)
 
-
-model_select <- function(df){
-#Where:
-  #df = Data frame to draw
-
-# Define a vector of model names
-model_names <- names(df)
-
-# Initialize an empty list to hold the models
-models <- list()
-
-#Add the outputs of the models as a list
-for(i in 1:length(df)) {
-  model_name <- model_names[i]
-  model <- df[[i]]$NPP_predict_avg
-  models[[model_name]] <- model
-}
-
-
-
-return(models)
+model_select <- function(df,scenario) {
+  # df: Data frame to select models from
+  
+  # Extract the model names
+  model_names <- names(df)
+  
+  # Initialize an empty list to hold the models
+  models <- list()
+  
+  # Add the models to the list
+  for (i in 1:length(df)) {
+    model_name <- model_names[i]
+    model <- df[[i]][[scenario]]
+    models[[model_name]] <- model
+  }
+  
+  return(models)
 }
 
 #############
 ################## TAYLOR PLOTS
 
-Taylor <- function(n, x, c, main){
+Taylor <- function(n, x, colors, main){
  
    #Where:
       #n = date start
       #x = date end
-      #c = color of dot
+      #colors = color of dot
+      #main = Tittle
 
-  #Creates new dataframe 
-  dfz <- orderModels[orderModels$name >= as.Date(n) & orderModels$name <= as.Date(x),]
-  frst <- dfz$order[1] #Selects the first value of the list
-  lst <- tail(dfz$order, n=1) # Selects the Last value on the list
+  #Creates new dataframe, by filtering the dates of the 
+  dfz <- orderModels[orderModels$name >= as.Date(n) & orderModels$name <= as.Date(x), ]
+  if (nrow(dfz) == 0) {
+    stop("No data available for the specified date range.")
+  }
   
-  #Creates the point of refences, the last observation all the values are on Models
+  #Creates the null hypothesis using  the last data on the list
   ref <- as.numeric(models[[tail(dfz$order, n=1)]])
   
   #Creates first diagram
-  taylor.diagram(ref,as.numeric(models[[dfz$order[1]]]), col=c,pch=1, cex=1.2, pcex = 2.5,
-                         main = main,
-                         xlab="Standart Deviation (lb/acre)",
-                         pos.cor=TRUE,
-                         show.gamma = T,
-                         sd.arcs = T)
+  taylor.diagram(ref,as.numeric(modelsA[[dfz$order[1]]]), col=colors,pch=1, cex=1.2, pcex = 2.5,
+                         main = main, xlab="Standart Deviation (lb/acre)",
+                         pos.cor=TRUE, show.gamma = T, sd.arcs = T)
 
-  
-  #Adds diagrams
-  for (i in 2:length(dfz$order)){
-    taylor.diagram(ref,as.numeric(models[[dfz$order[i]]]), add=TRUE,col=c,pch=i+13, cex=1.2,
-                   pcex = 2.5,main = main) 
-    #Cex = plotting text and symbols should be scaled relative to the default
-    #pcex = point expansion for the plotted points.
+  for (i in 2:(nrow(dfz) + 1)) {
+    if (i <= (length(colors) + 1)) {
+      if (i <= length(colors)) {
+        taylor.diagram(ref, as.numeric(modelsA[[dfz$order[i - 1]]]), add = TRUE, col = colors[i], pch = i + 13, cex = 1.2,
+                       pcex = 2.5, main = main)
+      } else {
+        taylor.diagram(ref, as.numeric(modelsC[[dfz$order[i - 1]]]), add = TRUE, pch = i + 13, cex = 1.2,
+                       pcex = 2.5, main = main)
+      }
+    } else {
+      stop("Insufficient colors provided for the number of models.")
+    }
   }
- 
 }
-
 n <- "2020-06-01"
 x <- "2020-12-31"
 
@@ -318,15 +359,21 @@ lst <- tail(dfz$order, n=1) # Selects the Last value on the list
 return(dfz)
 }
 
+
+##########################
+
 #####
-models <- model_select(df)
+modelsA <- model_select(df,5)
+modelsB <- model_select(df,4)
+modelsC <- model_select(df,6)
+colors <- c("blue", "red", "green", "purple") 
 #Draw the Maps
 #Spring 2020
 png(file="images/ANPP_FORECAST_ALL_SP2020.png",
     width=1000, height=1000, pointsize = 25)
 Sp20n <-"2020-01-01"
 Sp20x <- "2020-06-03"
-Taylor(Sp20n,Sp20x,"#DF5327","Spring 2020")
+Taylor(Sp20n,Sp20x,colors,"Spring 2020")
 #add RMSE label
 text(x=95,
      y=58,
@@ -342,7 +389,7 @@ png(file="images/ANPP_FORECAST_ALL_SP2021.png",
 Sp21n <-"2021-04-14"
 Sp21x <- "2021-06-01"
 c <- "#418AB3"
-Taylor(Sp21n,Sp21x,c,"Spring 2021")
+Taylor(Sp21n,Sp21x,colors,"Spring 2021")
 text(x=110,
      y=100,
      pos=1, srt = 20,
@@ -500,7 +547,7 @@ dev.off()
 
 
 #####
-##TRANSITIONS
+##SRANSITIONS
 models <- model_select(ANPP_FORECAST_T)
 #Draw the Maps
 #####
