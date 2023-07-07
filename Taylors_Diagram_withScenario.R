@@ -392,34 +392,34 @@ Taylor_Maker(ANPP_FORECAST_ALL, "ALL", "2021-04-14","2021-06-01","Spring",140,11
 Taylor_Maker(ANPP_FORECAST_ALL, "ALL", "2021-06-16","2021-08-24","Summer",250,400,20)
 
 #2022
-Taylor_Maker(ANPP_FORECAST_ALL, "ALL", "2022-04-05","2022-05-31","Spring",90,60,18)
+Taylor_Maker(ANPP_FORECAST_ALL, "ALL", "2022-04-05","2022-05-31","Spring",90,55,18)
 Taylor_Maker(ANPP_FORECAST_ALL, "ALL", "2022-06-14","2022-09-01","Summer",290,420,12)
 
 ##### WINTER ZONE
 #2020
-Taylor_Maker(ANPP_FORECAST_W, "W", "2020-05-15","2020-06-02","Winter Zone: Spring",90,54,20)
-Taylor_Maker(ANPP_FORECAST_W, "W", "2020-06-16","2020-09-01","Winter Zone: Summer",180,202,20)
+Taylor_Maker(ANPP_FORECAST_W, "W", "2020-05-15","2020-06-02","Winter Zone: Spring",85,55,15)
+Taylor_Maker(ANPP_FORECAST_W, "W", "2020-06-16","2020-09-01","Winter Zone: Summer",100,105,18)
 
 #2021
-Taylor_Maker(ANPP_FORECAST_W, "W", "2021-04-14","2021-06-01","Winter Zone: Spring",140,110,12)
-Taylor_Maker(ANPP_FORECAST_W, "W", "2021-06-16","2021-08-24","Winter Zone: Summer",250,400,20)
+Taylor_Maker(ANPP_FORECAST_W, "W", "2021-04-14","2021-06-01","Winter Zone: Spring",75,100,20)
+Taylor_Maker(ANPP_FORECAST_W, "W", "2021-06-16","2021-08-24","Winter Zone: Summer",95,90,32)
 
 #2022
-Taylor_Maker(ANPP_FORECAST_W, "W", "2022-04-05","2022-05-31","Winter Zone: Spring",90,55,18)
-Taylor_Maker(ANPP_FORECAST_W, "W", "2022-06-14","2022-09-01","Winter Zone: Summer",290,420,12)
+Taylor_Maker(ANPP_FORECAST_W, "W", "2022-04-05","2022-05-31","Winter Zone: Spring",60,53,20)
+Taylor_Maker(ANPP_FORECAST_W, "W", "2022-06-14","2022-09-01","Winter Zone: Summer",120,100,20)
 
 ##### TRANSITION ZONE
 #2020
-Taylor_Maker(ANPP_FORECAST_T, "T", "2020-05-15","2020-06-02","Transition Zone: Spring",85,55,20)
-Taylor_Maker(ANPP_FORECAST_T, "T", "2020-06-16","2020-09-01","Transition Zone: Summer",180,202,20)
+Taylor_Maker(ANPP_FORECAST_T, "T", "2020-05-15","2020-06-02","Transition Zone: Spring",85,55,15)
+Taylor_Maker(ANPP_FORECAST_T, "T", "2020-06-16","2020-09-01","Transition Zone: Summer",120,102,20)
 
 #2021
-Taylor_Maker(ANPP_FORECAST_T, "T", "2021-04-14","2021-06-01","Transition Zone: Spring",140,110,12)
-Taylor_Maker(ANPP_FORECAST_T, "T", "2021-06-16","2021-08-24","Transition Zone: Summer",250,400,20)
+Taylor_Maker(ANPP_FORECAST_T, "T", "2021-04-14","2021-06-01","Transition Zone: Spring",100,102,20)
+Taylor_Maker(ANPP_FORECAST_T, "T", "2021-06-16","2021-08-24","Transition Zone: Summer",150,202,20)
 
 #2022
-Taylor_Maker(ANPP_FORECAST_T, "T", "2022-04-05","2022-05-31","Transition Zone: Spring",90,55,18)
-Taylor_Maker(ANPP_FORECAST_T, "T", "2022-06-14","2022-09-01","Transition Zone: Summer",290,420,12)
+Taylor_Maker(ANPP_FORECAST_T, "T", "2022-04-05","2022-05-31","Transition Zone: Spring",70,51,22)
+Taylor_Maker(ANPP_FORECAST_T, "T", "2022-06-14","2022-09-01","Transition Zone: Summer",148,205,20)
 
 ##### SUMMER ZONE
 #2020
@@ -427,10 +427,10 @@ Taylor_Maker(ANPP_FORECAST_S, "S", "2020-05-15","2020-06-02","Summer Zone: Sprin
 Taylor_Maker(ANPP_FORECAST_S, "S", "2020-06-16","2020-09-01","Summer Zone: Summer",180,202,20)
 
 #2021
-Taylor_Maker(ANPP_FORECAST_S, "S", "2021-04-14","2021-06-01","Summer Zone: Spring",140,110,12)
-Taylor_Maker(ANPP_FORECAST_S, "S", "2021-06-16","2021-08-24","Summer Zone: Summer",250,400,20)
+Taylor_Maker(ANPP_FORECAST_S, "S", "2021-04-14","2021-06-01","Summer Zone: Spring",120,106,18)
+Taylor_Maker(ANPP_FORECAST_S, "S", "2021-06-16","2021-08-24","Summer Zone: Summer",250,392,20)
 
 #2022
-Taylor_Maker(ANPP_FORECAST_S, "S", "2022-04-05","2022-05-31","Summer Zone: Spring",90,55,18)
-Taylor_Maker(ANPP_FORECAST_S, "S", "2022-06-14","2022-09-01","Summer Zone: Summer",290,420,12)
+Taylor_Maker(ANPP_FORECAST_S, "S", "2022-04-05","2022-05-31","Summer Zone: Spring",65,50,25)
+Taylor_Maker(ANPP_FORECAST_S, "S", "2022-06-14","2022-09-01","Summer Zone: Summer",240,210,20)
 
