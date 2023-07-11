@@ -11,6 +11,8 @@ library(ggpubr)
 # Read the data from the file
 data <- read.csv("data/NPPNDVI_SW_sites.csv")
 
+set.seed(108)
+
 
 # Create a scatter plot
 
@@ -18,7 +20,7 @@ ploter <- function(data, subtitle){
   
   custom_colors <- c("#AAB645", "#DF5327", "#FEC306") #"#276EDF")
   
-  model_yearly <- lm(NDVI ~ ANPP, data=data)
+  model_yearly <- lm(ANPP ~ NDVI, data=data)
   
   plot <- ggplot(data, aes(x = NDVI, y = ANPP)) +
     geom_point(aes(color = SITE)) +
@@ -28,7 +30,7 @@ ploter <- function(data, subtitle){
     ylab("ANPP (lb/acre)") +
     geom_hline(yintercept=0, linetype="dashed", color="gray") +
     geom_vline(xintercept=0.1, linetype="dashed", color="gray") +
-    stat_smooth(method="lm", formula=y~x, se=FALSE, color="#595959") +
+    geom_smooth(method="lm", formula=y~x, se=FALSE, color="#595959") +
     
     theme_minimal() +
     theme(legend.position = "bottom", legend.title = element_blank())  +
@@ -41,8 +43,8 @@ ploter <- function(data, subtitle){
       "text",
       y = 360,
       x = 0.15,
-      #label = paste(expression("R²"), "=", signif(summary(model_yearly)$r.squared, digits = 3)),
-      label = "R² = 0.6552",
+      label = paste(expression("R²"), "=", signif(summary(model_yearly)$r.squared, digits = 3)),
+      #label = "R² = 0.6552",
       color = "#595959",
       size = 4
     ) + #Annotate R2
@@ -52,8 +54,8 @@ ploter <- function(data, subtitle){
       "text",
       y = 400,
       x = 0.17,
-      #label = paste0("y = ", round(coef(model_yearly)[1], digits = 2), "x - ", signif(coef(model_yearly)[2], digits = 3)),
-      label = "y = 891.06x - 117",
+      label = paste0("y = ", round(coef(model_yearly)[2], digits = 2), "x ", signif(coef(model_yearly)[1], digits = 3)),
+      #label = "y = 891.06x - 117",
       color = "#595959",
       size = 4
     ) #Annotate linear equation
