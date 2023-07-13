@@ -11,6 +11,7 @@ colnames(ENSOvsSpr1980_2020)[3] ="Year"
 ENSOvsSU_1950_2020 <- read.csv("data/ENSOvsSU_1950_2020.csv")
 
 
+
 4 <- "JMF"
 5 <- "MAM"
 6 <- "JJA"                    
@@ -22,6 +23,8 @@ ENSOvsSU_1950_2020 <- read.csv("data/ENSOvsSU_1950_2020.csv")
 #FUNCTION
 ENSO <- function(data,z,l,c,season, year){
 
+  #l = choose trimester from list
+  #c = chooser ANPP anomaly
   
 data <- data %>% filter(Year >= year)
   
@@ -47,22 +50,35 @@ ggplot(df, aes(x = x, y = y, label=data$Year)) +
   geom_point(color = "black", alpha = 0.6) +
   geom_smooth(method = "lm", se = FALSE, color = c) +
   geom_text_repel(size=3,alpha = 0.3, nudge_y=-(max(y)/100))+
-  labs(title = paste(season,"mean ANPP values vs ENSO Temperature"), 
-       subtitle = paste0("Months: ", a," | ", "ANPP: ", b," | ","Years: ",year,"-2020")) + 
   xlab(paste(a,"(°C)")) +
-  ylab(paste(b,"(lb/ac)")) +
-  annotate("text", x = median(x), y = (max(y)/2), label = paste0("R2 = ", round(rsq, 2)),
-           color = c, size = 8, fontface = "bold", alpha = 1, 
-           hjust = 0)+
-  annotate("text", x = median(x), y = (max(y)/3), label = paste0("P value = ", format.pval(pval))
-           ,color = c, size = 8, fontface = "bold", alpha = 1, 
-           hjust = 0)+
-  annotate("text", x = median(x), y = (max(y)/6), label = paste0("Slope = ", format(round(slope, 2), nsmall = 2)),
-           color = c, size = 8, fontface = "bold", alpha = 1, 
-           hjust = 0) +
-  theme_linedraw(base_size = 15)
+  ylab(paste("ANPP (lb/ac)")) +
+  
+  
+  annotate(
+    "text",
+    x = (min(x)*2),
+    y = (max(y)/2),
+    label = paste(expression("R²"), "=", signif(summary(model)$r.squared, digits = 3)),
+    color = "#595959",
+    size = 5
+  ) + #Annotate R2
+  
+  
+  annotate(
+    "text",
+    x = median(x)/2,
+    y = (max(y)/6),
+    label = paste0("y = ", round(coef(model)[2], digits = 2), "x ", signif(coef(model)[1], digits = 3)),
+    color = "#595959",
+    size = 5
+  ) + #Annotate linear equation
 
-ggsave(paste0("images/",season,a,"_",b,".png"))
+
+  theme_classic() +
+  theme(panel.border = element_rect(colour = "black", fill=NA, size=1))
+
+ggsave(paste0("images/",season,a,"_",b,".png"),
+       dpi = 400)
 
 return(c(rsq,pval,cf,summary(model)))
 

@@ -2,12 +2,6 @@
 library(ggplot2)
 library(ggpubr)
 
-#The equations does not seem to mach the equations of excel. 
-#I belive is due to the incorrect paring of variables
-#Because of this, the annotated boxes have two options, 
-#The first one are the calculated intercepted and slope
-#The second one are the results from excel, just change the values
-
 # Read the data from the file
 data <- read.csv("data/NPPNDVI_SW_sites.csv")
 
@@ -41,12 +35,11 @@ ploter <- function(data, subtitle){
     
     annotate(
       "text",
-      y = 360,
+      y = 365,
       x = 0.15,
       label = paste(expression("R²"), "=", signif(summary(model_yearly)$r.squared, digits = 3)),
-      #label = "R² = 0.6552",
       color = "#595959",
-      size = 4
+      size = 5
     ) + #Annotate R2
     
     
@@ -55,9 +48,8 @@ ploter <- function(data, subtitle){
       y = 400,
       x = 0.17,
       label = paste0("y = ", round(coef(model_yearly)[2], digits = 2), "x ", signif(coef(model_yearly)[1], digits = 3)),
-      #label = "y = 891.06x - 117",
       color = "#595959",
-      size = 4
+      size = 5
     ) #Annotate linear equation
   
   
@@ -65,7 +57,7 @@ ploter <- function(data, subtitle){
   
 }
 
-#Saves Plot and calcualtes p value
+#Saves Plot and calculates p value
 save <- function(data, subtitle){
   
   plot <- ploter(data,subtitle)
@@ -85,7 +77,7 @@ save(SITES,"All sites")
 
 #Filter data for darin's selection
 DARIN <- data[data$ALL %in% "YES", ]
-save(DARIN,"Darin's selection")
+save(DARIN,"Locations: Jornada, Santa Rita(AZ) and Torell (NM)")
 
 
 

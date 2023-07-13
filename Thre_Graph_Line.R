@@ -43,6 +43,9 @@ J <- ggplot(JMF, aes(x = x, y = y,label=JMF$year)) +
   geom_hline(yintercept=0, linetype="dashed", color="gray") +
   geom_vline(xintercept=0, linetype="dashed", color="gray") +
   
+  ylim(-40,45) +
+  xlim(-1.5,1.5) +
+  
   annotate(
     "text",
     x = -1.10,
@@ -66,6 +69,7 @@ J <- ggplot(JMF, aes(x = x, y = y,label=JMF$year)) +
   theme(axis.line = element_blank(),
     panel.border = element_rect(colour = "black", fill = NA, size=0.8))
 
+
 ### Create a scatter plot with linear MAM #####
 M <- ggplot(MAM, aes(x = x, y = y,label=MAM$year)) +
   geom_point(color = "#FEC306", alpha = 1) +
@@ -77,9 +81,12 @@ M <- ggplot(MAM, aes(x = x, y = y,label=MAM$year)) +
   geom_hline(yintercept=0, linetype="dashed", color="gray") +
   geom_vline(xintercept=0, linetype="dashed", color="gray") +
   
+  ylim(-40,45) +
+  xlim(-1.5,1.5) +
+  
   annotate(
     "text",
-    x = -0.7,
+    x = -1.10,
     y = 40,
     label = paste(expression("R²"), "=", signif(summary(model_MAM)$r.squared, digits = 3)),
     color = "#595959",
@@ -88,7 +95,7 @@ M <- ggplot(MAM, aes(x = x, y = y,label=MAM$year)) +
   
   annotate(
     "text",
-    x = -0.7,
+    x = -1.1,
     y = 45,
     label = paste0("y = ", round(coef(model_MAM)[2], digits = 2), "x ", signif(coef(model_MAM)[1], digits = 3)),
     color = "#595959",
@@ -98,7 +105,6 @@ M <- ggplot(MAM, aes(x = x, y = y,label=MAM$year)) +
   theme_classic() +
   theme(axis.line = element_blank(),
         panel.border = element_rect(colour = "black", fill=NA, size=0.8))
-
 
 #### Combine multiple ggplot on one page #### 
 

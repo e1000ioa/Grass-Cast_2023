@@ -100,4 +100,4 @@ yeary_plot(GC_yearly$Su_Z_ANPP,GC_yearly$Su_Z_NDVI, "Yearly Average Summer Z sco
 
 
 #idea
-#Use orange for summer and blue for spring
+#Use yellow for summer and green for spring
