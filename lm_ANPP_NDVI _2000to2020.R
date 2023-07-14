@@ -1,7 +1,9 @@
-##Libraries
+#libraries
 library(ggplot2)
 library(dplyr)
 library(ggrepel)
+library(ggpubr)
+library(ggtext) #for shaowtext 
 
 ##Add Files
 GC <- read.csv(file = "data/az_nm_2000_2020.csv", head = TRUE, sep=",") 
@@ -55,24 +57,46 @@ ggplot(GC_yearly, aes(x=Sp_Avg_ANPP, y=Sp_Avg_NDVI)) +
 
 
 
-
-yeary_plot <- function(a,b,c,d,e){
+yeary_plot <- function(data,x,y,color){
   # Fit a linear regression model
-  model_yearly <- lm(a ~ b, data=d)
+model <- lm(x ~ y, data=data)
   
- plot<- ggplot(d, aes(x=a, y=b)) +
-    geom_point() +
-    ggtitle(paste0(c," NDVI and ANPP from 2000 to 2020")) +
+ plot <- ggplot(data, aes(x=x, y=y, label = Year)) +
+   geom_point(color = color, alpha = 1) +
+   geom_smooth(method="lm", formula=y~x, se=FALSE, color= color) +
+   geom_text_repel(size=3,alpha = 0.5, nudge_y=-(max(y)/100)) +
+   
     xlab("Delta ANPP (lb/acre)") +
     ylab("NDVI(%)") +
+   
     geom_hline(yintercept=0, linetype="dashed", color="gray") +
     geom_vline(xintercept=0, linetype="dashed", color="gray") +
-    stat_smooth(method="lm", formula=y~x, se=FALSE, color=e) +
-    annotate("text", x=min(a)/1.3, y=max(b)/1.1, label=paste("R^2 = ", signif(summary(model_yearly)$r.squared, digits=3)), color=e, size=5) +
-    annotate("text", x=min(a)/1.3, y=max(b)/1.3, label=paste("Slope = ", signif(coef(model_yearly)[2], digits=3)), color=e, size=5) +
-    theme_minimal()
+   
+   annotate(
+     "text",
+     x = min(x)/1.3, 
+     y=max(y)/1.1,
+     label = paste0("y = ", round(coef(model)[2], digits = 2), "x ", signif(coef(model)[1], digits = 3)),
+     color = "#595959",
+     size = 4
+   ) + #Annotate linear equation
+   
+   
+   annotate(
+     "text",
+     x = min(x)/1.3,
+     y = max(y)/1.2,
+     label = paste(expression("R²"), "=", signif(summary(model)$r.squared, digits = 3)),
+     color = "#595959",
+     size = 4
+   ) + #Annotate R2
+  
+   theme_classic() +
+   theme(axis.line = element_blank(),
+         panel.border = element_rect(colour = "black", fill = NA, size=0.8))
  
  return(plot)
+ 
 }
 
 #Average summer NDVI anomalies from 2000 t0 2020
@@ -92,12 +116,19 @@ yeary_plot(GC_yearly$Su_Avg_ANPP,GC_yearly$Su_Avg_NDVI, "Yearly Average Summer A
   geom_text_repel(aes(label = Year), hjust = 0, vjust = 0,segment.color = "gray",segment.alpha = 0.6)
 
 #Average z values from 2000 to 2020
-yeary_plot(GC_yearly$Sp_Z_ANPP,GC_yearly$Sp_Z_NDVI, "Yearly Average Spring Z score",GC_yearly, "#0066FF")+
-  geom_text_repel(aes(label = Year), hjust = 0, vjust = 0,segment.color = "gray",segment.alpha = 0.6)
+SP <- yeary_plot(GC_yearly, GC_yearly$Sp_Z_ANPP,GC_yearly$Sp_Z_NDVI,"#AAB645") 
 
-yeary_plot(GC_yearly$Su_Z_ANPP,GC_yearly$Su_Z_NDVI, "Yearly Average Summer Z score",GC_yearly, "#FF6600") +
-  geom_text_repel(aes(label = Year), hjust = 0, vjust = 0,segment.color = "gray",segment.alpha = 0.6)
+SU <- yeary_plot(GC_yearly, GC_yearly$Su_Z_ANPP,GC_yearly$Su_Z_NDVI, "#FEC306") 
 
+#### Combine multiple ggplot on one page #### 
 
-#idea
-#Use yellow for summer and green for spring
+ggarrange(SP, SU,
+          labels = c("A", "B"),
+          ncol = 2, nrow = 1)
+
+ggsave("images/NDVI_ANPP_lm.png", 
+       dpi = 350,
+       height = 18,
+       width = 33,
+       units = "cm")
+

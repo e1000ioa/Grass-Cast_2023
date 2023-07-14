@@ -5,8 +5,6 @@ library(ggrepel)
 library(ggpubr)
 library(ggtext) #for shaowtext 
 
-
-
 ###### ENSO ####
 
 ### Prep data Set ####
@@ -18,7 +16,7 @@ ENSO_SP <- read.csv("data/ENSOvsSpr1980_2020.csv") %>% filter(year >= 1980)
 xj <- unlist(ENSO_SP[4]) #JMF
 yj <- unlist(ENSO_SP[15])
 zj <- unlist(ENSO_SP[3])
-JMF <- data.frame(x=xj, y=yj, year = z)
+JMF <- data.frame(x=xj, y=yj, year = zj)
 model_JMF <- lm(x ~ y, data=JMF)
 summary(model_JMF)
 
@@ -28,7 +26,7 @@ colnames(ENSO_SU)
 xm <- unlist(ENSO_SU[4])
 ym <- unlist(ENSO_SU[8])
 zm <- unlist(ENSO_SU[3])
-MAM <- data.frame(x=xm, y=ym, year = z)
+MAM <- data.frame(x=xm, y=ym, year = zm)
 model_MAM <- lm(x ~ y, data=MAM)
 summary(model_MAM)
 
@@ -108,8 +106,10 @@ M <- ggplot(MAM, aes(x = x, y = y,label=MAM$year)) +
 
 #### Combine multiple ggplot on one page #### 
 
-ggarrange(J, M,
-          labels = c("A", "B"),
-          ncol = 2, nrow = 1)
+ggsave("images/NDVI_ANPP_lm.png", 
+       dpi = 350,
+       height = 18,
+       width = 33,
+       units = "cm")
 
 ggsave("images/JMF_MAM_ENSO.png", dpi = 350)

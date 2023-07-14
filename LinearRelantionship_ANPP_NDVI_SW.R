@@ -10,7 +10,7 @@ set.seed(108)
 
 # Create a scatter plot
 
-ploter <- function(data, subtitle){
+ploter <- function(data){
   
   custom_colors <- c("#AAB645", "#DF5327", "#FEC306") #"#276EDF")
   
@@ -19,18 +19,12 @@ ploter <- function(data, subtitle){
   plot <- ggplot(data, aes(x = NDVI, y = ANPP)) +
     geom_point(aes(color = SITE)) +
     scale_color_manual(values = custom_colors) + 
-    ggtitle(label = "Harvested ANPP VS. Observed NDVI", subtitle = subtitle) +
     xlab("NDVI") +
     ylab("ANPP (lb/acre)") +
-    geom_hline(yintercept=0, linetype="dashed", color="gray") +
-    geom_vline(xintercept=0.1, linetype="dashed", color="gray") +
     geom_smooth(method="lm", formula=y~x, se=FALSE, color="#595959") +
     
-    theme_minimal() +
-    theme(legend.position = "bottom", legend.title = element_blank())  +
-    
-    ylim(0, 450) +  # Set x limits
-    xlim(0.1, 0.5) +  # Set y limits +
+    ylim(0, 425) +  # Set x limits
+    xlim(0.1, 0.45) +  # Set y limits +
     
     
     annotate(
@@ -50,7 +44,12 @@ ploter <- function(data, subtitle){
       label = paste0("y = ", round(coef(model_yearly)[2], digits = 2), "x ", signif(coef(model_yearly)[1], digits = 3)),
       color = "#595959",
       size = 5
-    ) #Annotate linear equation
+    ) + #Annotate linear equation
+  
+  theme_classic() +
+    theme(axis.line = element_blank(),
+          panel.border = element_rect(colour = "black", fill=NA, size=0.8),
+          legend.position = "bottom", legend.title = element_blank())
   
   
   return(plot)
@@ -58,9 +57,9 @@ ploter <- function(data, subtitle){
 }
 
 #Saves Plot and calculates p value
-save <- function(data, subtitle){
+save <- function(data){
   
-  plot <- ploter(data,subtitle)
+  plot <- ploter(data)
   ggsave(paste0("NDVI_ANPP_lm_",substitute(data),".png"), plot=last_plot(), bg="white")
   
   model <- lm(NDVI ~ ANPP, data = data) %>% summary()  
@@ -77,7 +76,7 @@ save(SITES,"All sites")
 
 #Filter data for darin's selection
 DARIN <- data[data$ALL %in% "YES", ]
-save(DARIN,"Locations: Jornada, Santa Rita(AZ) and Torell (NM)")
+save(DARIN)
 
 
 
