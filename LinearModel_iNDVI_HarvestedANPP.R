@@ -57,7 +57,7 @@ ploter <- function(data){
 save <- function(data){
   
   plot <- ploter(data)
-  ggsave(paste0("NDVI_ANPP_lm_",substitute(data),".png"), plot=last_plot(), bg="white")
+  ggsave(paste0("images/NDVI_ANPP_lm_",substitute(data),".png"), plot=last_plot(), bg="white")
   
   model <- lm(NDVI ~ ANPP, data = data) %>% summary()  
   p_value <- model$coefficients[2, 4]
@@ -66,13 +66,8 @@ save <- function(data){
     
 }
 
-# Filter the data for three specific sites
-selected_sites <- c("JORNADA", "SANTA RITA", "TORREL")
-SITES <- data[data$SITE %in% selected_sites, ]
-save(SITES,"All sites")
-
 #Filter data for darin's selection
-DARIN <- data[data$ALL %in% "YES", ]
+DARIN <- NPPiNDVI[NPPiNDVI$ALL %in% "YES", ]
 save(DARIN)
 
 
