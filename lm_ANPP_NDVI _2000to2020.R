@@ -99,21 +99,6 @@ model <- lm(x ~ y, data=data)
  
 }
 
-#Average summer NDVI anomalies from 2000 t0 2020
-yeary_plot(GC$spring_delta_anpp,GC$spring_delta_ndvi, "Spring Anomalies",GC, "#0066FF")
-yeary_plot(GC$summer_delta_anpp,GC$summer_delta_ndvi, "Summer Anomalies",GC, "#FF6600")
-
-#Average z values from 2000 to 2020
-yeary_plot(GC$spring_z_anpp,GC$spring_z_ndvi, "Spring Z score",GC, "#0066FF")
-yeary_plot(GC$summer_z_anpp,GC$summer_z_ndvi, "Summer Z score",GC, "#FF6600")
-
-
-#Average summer NDVI anomaliely$Sp_Avg_NDVI, "Average Spring",GC_yearly)
-yeary_plot(GC_yearly$Sp_Avg_ANPP,GC_yearly$Sp_Avg_NDVI, "Yearly Average Spring Anomalies",GC_yearly, "#0066FF") +
-  geom_text_repel(aes(label = Year), hjust = 0, vjust = 0,segment.color = "gray",segment.alpha = 0.6)
-
-yeary_plot(GC_yearly$Su_Avg_ANPP,GC_yearly$Su_Avg_NDVI, "Yearly Average Summer Anomalies",GC_yearly, "#FF6600") +
-  geom_text_repel(aes(label = Year), hjust = 0, vjust = 0,segment.color = "gray",segment.alpha = 0.6)
 
 #Average z values from 2000 to 2020
 SP <- yeary_plot(GC_yearly, GC_yearly$Sp_Z_ANPP,GC_yearly$Sp_Z_NDVI,"#AAB645") 

@@ -16,9 +16,9 @@ ENSO_SP <- read.csv("data/ENSOvsSpr1980_2020.csv") %>% filter(year >= 1980)
 xj <- unlist(ENSO_SP[4]) #JMF
 yj <- unlist(ENSO_SP[15])
 zj <- unlist(ENSO_SP[3])
-JMF <- data.frame(x=xj, y=yj, year = zj)
-model_JMF <- lm(x ~ y, data=JMF)
-summary(model_JMF)
+JFM <- data.frame(x=xj, y=yj, year = zj)
+model_JFM <- lm(xj ~ yj, data=JMF)
+summary(model_JFM)
 
 # Create a data frame with MAM
 ENSO_SU <- read.csv("data/ENSOvsSU_1950_2020.csv") %>% filter(Year >= 1980)
@@ -31,11 +31,10 @@ model_MAM <- lm(x ~ y, data=MAM)
 summary(model_MAM)
 
 ### Create a scatter plot with linear JMF #####
-J <- ggplot(JMF, aes(x = x, y = y,label=JMF$year)) +
+J <- ggplot(JFM, aes(x = JFM$x, y = JFM$y, label=JFM$year)) +
   geom_point(color = "#AAB645", alpha = 1) +
-  geom_smooth(method="lm", formula=y~x, se=FALSE, color="#AAB645") +
-  geom_text_repel(size=3,alpha = 0.3, nudge_y=-(max(y)/100))+
-  xlab(paste("JMF (°C)")) +
+  geom_text_repel(size=3,alpha = 0.3, nudge_y=-(max(y)/100)) +
+  xlab(paste("JFM (°C)")) +
   ylab(paste("ANPP mean anommally  (lb/ac)")) +
   
   geom_hline(yintercept=0, linetype="dashed", color="gray") +
@@ -105,6 +104,10 @@ M <- ggplot(MAM, aes(x = x, y = y,label=MAM$year)) +
         panel.border = element_rect(colour = "black", fill=NA, size=0.8))
 
 #### Combine multiple ggplot on one page #### 
+
+ggarrange(J, M,
+          labels = c("A", "B"),
+          ncol = 2, nrow = 1)
 
 ggsave("images/NDVI_ANPP_lm.png", 
        dpi = 350,

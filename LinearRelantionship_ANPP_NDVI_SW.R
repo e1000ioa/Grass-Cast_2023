@@ -3,10 +3,7 @@ library(ggplot2)
 library(ggpubr)
 
 # Read the data from the file
-data <- read.csv("data/NPPNDVI_SW_sites.csv")
-
-set.seed(108)
-
+NPPiNDVI <- read.csv("data/NPPNDVI_SW_sites.csv")
 
 # Create a scatter plot
 
@@ -19,7 +16,7 @@ ploter <- function(data){
   plot <- ggplot(data, aes(x = NDVI, y = ANPP)) +
     geom_point(aes(color = SITE)) +
     scale_color_manual(values = custom_colors) + 
-    xlab("NDVI") +
+    xlab("iNDVI") +
     ylab("ANPP (lb/acre)") +
     geom_smooth(method="lm", formula=y~x, se=FALSE, color="#595959") +
     
