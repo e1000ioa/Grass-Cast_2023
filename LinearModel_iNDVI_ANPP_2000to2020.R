@@ -16,8 +16,8 @@ model <- lm(GC$spring_delta_ndvi ~ GC$spring_delta_anpp, data=GC)
 ggplot(GC, aes(x=spring_delta_anpp, y=spring_delta_ndvi)) +
   geom_point() +
   ggtitle("Spring NDVI and ANPP Anomolies from 2000 to 2020") +
-  xlab("Delta ANPP (lb/acre)") +
-  ylab("NDVI(%)") +
+  xlab("Δ ANPP (lb/acre)") +
+  ylab("Δ iNDVI(%)") +
   geom_hline(yintercept=0, linetype="dashed", color="gray") +
   geom_vline(xintercept=0, linetype="dashed", color="gray") +
   stat_smooth(method="lm", formula=y~x, se=FALSE, color="red") +
@@ -46,8 +46,8 @@ model_yearly <- lm(Sp_Avg_ANPP ~ Sp_Avg_NDVI, data=GC_yearly)
 ggplot(GC_yearly, aes(x=Sp_Avg_ANPP, y=Sp_Avg_NDVI)) +
   geom_point() +
   ggtitle("Average Spring NDVI and ANPP Anomolies from 2000 to 2020") +
-  xlab("Delta ANPP (lb/acre)") +
-  ylab("NDVI(%)") +
+  xlab("Δ ANPP (lb/acre)") +
+  ylab("Δ iNDVI(%)") +
   geom_hline(yintercept=0, linetype="dashed", color="gray") +
   geom_vline(xintercept=0, linetype="dashed", color="gray") +
   stat_smooth(method="lm", formula=y~x, se=FALSE, color="blue") +
@@ -59,15 +59,19 @@ ggplot(GC_yearly, aes(x=Sp_Avg_ANPP, y=Sp_Avg_NDVI)) +
 
 yeary_plot <- function(data,x,y,color){
   # Fit a linear regression model
-model <- lm(x ~ y, data=data)
+ 
+ model <- lm(x ~ y, data=data)
   
  plot <- ggplot(data, aes(x=x, y=y, label = Year)) +
    geom_point(color = color, alpha = 1) +
    geom_smooth(method="lm", formula=y~x, se=FALSE, color= color) +
    geom_text_repel(size=3,alpha = 0.5, nudge_y=-(max(y)/100)) +
    
-    xlab("Delta ANPP (lb/acre)") +
-    ylab("NDVI(%)") +
+   xlab("Δ ANPP (lb/acre)") +
+   ylab("Δ iNDVI(%)") +
+   
+   ylim(-1.5, 1.5) +
+   xlim(-1.5, 1.5) +
    
     geom_hline(yintercept=0, linetype="dashed", color="gray") +
     geom_vline(xintercept=0, linetype="dashed", color="gray") +
