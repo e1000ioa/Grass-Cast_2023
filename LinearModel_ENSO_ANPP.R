@@ -91,6 +91,9 @@ model_MAM <- lm(x ~ y, data=MAM)
 summary_model_MAM <- summary(model_MAM)
 p_value <- summary_model_MAM$coefficients[2, "Pr(>|t|)"]
 
+library(cNORM)
+pdata <- prepareData(MAM)
+
 ### Create a scatter plot with linear MAM #####
 M <- ggplot(MAM, aes(x = x, y = y,label=MAM$year)) +
   geom_point(color = "#FEC306", alpha = 1) +
