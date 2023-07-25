@@ -9,8 +9,11 @@ library(zoo) #Infrastructure for Regular and Irregular Time Series
 library(plotrix) #add talyor pltos
 library(Metrics) #has the rmse fucntion
 
+<<<<<<< Updated upstream
 set.seed(108)
 
+=======
+>>>>>>> Stashed changes
 ##########
 #Load and Select Data
 #COPY FROM CORREALTIONS_2020-2022
@@ -43,8 +46,11 @@ i1 <- order(as.Date(Dates_List, format = "%Y-%m-%d"))
 Dates_List[i1]
 
 
+<<<<<<< Updated upstream
 
 
+=======
+>>>>>>> Stashed changes
 #####
 #Make the lenghts of the list match
 #Find the unique id's bettewn the unmacthed len list
@@ -82,6 +88,7 @@ Forecast_Ratio <- do.call(rbind, dfx) #Finish de DF back to begigin
 rownames(Forecast_Ratio) <- NULL #Eliminates row names
 df <- split(Forecast_Ratio, Forecast_Ratio$Forecast)
 
+<<<<<<< Updated upstream
 
 #Spiting data in regions
 ANPP_FORECAST_W <- subset(Forecast_Ratio, pptRatioSummerWinter < '0.8')
@@ -151,6 +158,47 @@ Stats <- function(data,n,x){
       
       # Reorder the columns
       ANPP.r <- select(ANPP.r, Forecast,MEAN,SD,COUNT,SLOPE,INTERCEPT,R2,STD_ERROR,BIAS,RMSE,P_VALUE)
+=======
+#########
+##ALL Regions Stats
+
+Stats <- function(n,x){
+  
+  #N is the observation we are testing
+  #x is the final observation
+  df <- Forecast_Ratio
+  df <- df[df$Forecast >= as.Date(n) & df$Forecast <= as.Date(x),]
+  df <- split(df, df$Forecast)
+  
+  #Check the lenght of variables in 3 years
+  # Creates an empty list for the for loop
+  r.lenght <- list()
+  fc <- function(n, x) {
+    
+    # Interpolate missing values to make lengths equal
+    df[[n]]$NPP_predict_avg <- na.approx(df[[n]]$NPP_predict_avg)
+    
+    #Calculate R2, standard deviation and bias
+    mean1 <-mean(df[[n]]$NPP_predict_avg)
+    mean2 <- mean(df[[x]]$NPP_predict_avg)
+    mod <- lm(df[[n]]$NPP_predict_avg ~ df[[x]]$NPP_predict_avg)
+    cf <- coef(mod)
+    Intercept <- cf[1]
+    Slope <- cf[2]
+    sd <- sd(df[[n]]$NPP_predict_avg - df[[x]]$NPP_predict_avg, na.rm = TRUE)
+    r2 <- cor(df[[n]]$NPP_predict_avg, df[[x]]$NPP_predict_avg)
+    
+    bias <- mean(df[[n]]$NPP_predict_avg - df[[x]]$NPP_predict_avg, na.rm = TRUE)
+    
+    #Creates a matrix 
+    ANPP.r <- matrix(c(mean1,mean2,sd,bias,r2,Slope,Intercept), ncol = 7, byrow = TRUE)
+    colnames(ANPP.r) <- c("MEAN1","MEAN2",'SD','BIAS','R2',"Slope","Intercept")
+    ANPP.r <- as.data.frame(ANPP.r) 
+    
+    # Create a new column "forecast" and "Compare" and assign the date from y[x]
+    ANPP.r$Forecast <- names(df)[n]
+    ANPP.r$FinalForecast <- names(df)[x]
+>>>>>>> Stashed changes
     
     
     return(ANPP.r)
@@ -162,14 +210,18 @@ Stats <- function(data,n,x){
   for(i in 1:length(df)) {
     r.list2[[i]] <- fc(i,length(df))
     
+<<<<<<< Updated upstream
     #Order Columns
     
+=======
+>>>>>>> Stashed changes
   }
   
   Stats <- bind_rows(r.list2)
   
 }
 
+<<<<<<< Updated upstream
 
 ####### STATS ALL THE REGIONS
 #Spring
@@ -232,6 +284,23 @@ ssu3 <- Stats(Forecast_Ratio,"2022-06-14","2022-09-01")
 
 SR_Summer <- rbind(su1, su2, su3)
 
+=======
+#Spring
+sp1 <- Stats("2020-04-01","2020-06-10")
+sp2 <- Stats("2021-04-01","2021-06-02")
+sp3 <- Stats("2022-04-01","2022-06-02")
+
+Spring <- rbind(sp1, sp2, sp3)
+write.csv2()
+
+#Summer
+su1 <- Stats("2020-06-16","2020-09-02")
+su2 <- Stats("2021-06-15","2021-09-02")
+su3 <- Stats("2022-06-15","2022-09-02")
+
+Summer <- rbind(su1, su2, su3)
+
+>>>>>>> Stashed changes
 #####
 #Select data to add to the taylor diagram
 
@@ -239,6 +308,18 @@ SR_Summer <- rbind(su1, su2, su3)
 df <- Forecast_Ratio
 df <- split(df, df$Forecast)
 
+<<<<<<< Updated upstream
+=======
+#Spiting data in regions
+ANPP_FORECAST_W <- subset(Forecast_Ratio, pptRatioSummerWinter < '0.8') 
+ANPP_FORECAST_W <- split(ANPP_FORECAST_W, ANPP_FORECAST_W$Forecast)
+
+ANPP_FORECAST_T <- Forecast_Ratio  %>%   filter(pptRatioSummerWinter >0.8 &  pptRatioSummerWinter < 1.2)
+ANPP_FORECAST_T <- split(ANPP_FORECAST_T, ANPP_FORECAST_T$Forecast)
+
+ANPP_FORECAST_S <- subset(Forecast_Ratio, pptRatioSummerWinter > '1.2')
+ANPP_FORECAST_S <- split(ANPP_FORECAST_S, ANPP_FORECAST_S$Forecast)
+>>>>>>> Stashed changes
 
 model_select <- function(df){
 #Where:
@@ -262,8 +343,12 @@ for(i in 1:length(df)) {
 return(models)
 }
 
+<<<<<<< Updated upstream
 #############
 ################## TAYLOR PLOTS
+=======
+
+>>>>>>> Stashed changes
 
 Taylor <- function(n, x, c, main){
  
@@ -322,6 +407,7 @@ png(file="images/ANPP_FORECAST_ALL_SP2020.png",
 Sp20n <-"2020-01-01"
 Sp20x <- "2020-06-03"
 Taylor(Sp20n,Sp20x,"#DF5327","Spring 2020")
+<<<<<<< Updated upstream
 #add RMSE label
 text(x=95,
      y=58,
@@ -329,6 +415,14 @@ text(x=95,
      label="RMSE (lb/acre)",font=3,cex=0.8)
 dfz <- Legends(Sp20n,Sp20x)
 legend(155,160,legend=substr(dfz$name, 6, 10) ,pch=c(1,15,16,17,18,19,20),col="#DF5327")
+=======
+text(x=85,
+     y=56,
+     pos=1, srt = 15,
+     label="RMSE (lb/acre)",font=3,cex=0.8)
+dfz <- Legends(Sp20n,Sp20x)
+legend(140,130,legend=substr(dfz$name, 6, 10) ,pch=c(1,15,16,17,18,19,20),col="#DF5327")
+>>>>>>> Stashed changes
 dev.off()
 
 #Spring 2021
@@ -338,12 +432,21 @@ Sp21n <-"2021-04-14"
 Sp21x <- "2021-06-01"
 c <- "#418AB3"
 Taylor(Sp21n,Sp21x,c,"Spring 2021")
+<<<<<<< Updated upstream
 text(x=110,
      y=100,
      pos=1, srt = 20,
      label="RMSE (lb/acre)",font=3,cex=0.8)
 dfz <- Legends(Sp21n,Sp21x)
 legend(200,240,legend=substr(dfz$name, 6, 10) ,pch=c(1,15,16,17),col=c)
+=======
+text(x=95,
+     y=55,
+     pos=1, srt = 20,
+     label="RMSE (lb/acre)",font=3,cex=0.8)
+dfz <- Legends(Sp21n,Sp21x)
+legend(155,160,legend=substr(dfz$name, 6, 10) ,pch=c(1,15,16,17),col=c)
+>>>>>>> Stashed changes
 dev.off()
 
 #Spring 2022
@@ -353,12 +456,21 @@ Sp22n <-"2022-04-05"
 Sp22x <- "2022-05-31"
 c <- "#838383"
 Taylor(Sp22n,Sp22x,c, "Spring 2022")
+<<<<<<< Updated upstream
 text(x=90,
      y=58,
      pos=1, srt = 16,
      label="RMSE (lb/acre)",font=3,cex=0.8)
 dfz <- Legends(Sp22n,Sp22x)
 legend(190,200,legend=substr(dfz$name, 6, 10) ,pch=c(1,15,16,17,18,19,20),col=c)
+=======
+text(x=60,
+     y=53,
+     pos=1, srt = 16,
+     label="RMSE (lb/acre)",font=3,cex=0.8)
+dfz <- Legends(Sp22n,Sp22x)
+legend(110,120,legend=substr(dfz$name, 6, 10) ,pch=c(1,15,16,17,18,19,20),col=c)
+>>>>>>> Stashed changes
 dev.off()
 
 #####SUMMMER
@@ -366,6 +478,7 @@ dev.off()
 png(file="images/ANPP_FORECAST_ALL_SU2020.png",
     width=1000, height=1000, pointsize = 25)
 Su20n <-"2020-06-16"
+<<<<<<< Updated upstream
 Su20x <- "2020-09-01"
 c <- "#DF5327"
 Taylor(Su20n,Su20x,c, "Summer 2020")
@@ -390,6 +503,33 @@ text(x=250,
      label="RMSE (lb/acre)",font=3,cex=0.8)
 dfz <- Legends(Su21n,Su21x)
 legend(600,600,legend=substr(dfz$name, 6, 10) ,pch=c(1,15,16,17,18,19,20),col=c)
+=======
+Su20x <- "2020-12-31"
+c <- "#DF5327"
+Taylor(Su20n,Su20x,c, "Summer 2020")
+text(x=100,
+     y=105,
+     pos=1, srt = 15,
+     label="RMSE (lb/acre)",font=3,cex=0.8)
+dfz <- Legends(Su20n,Su20x)
+legend(200,200,legend=substr(dfz$name, 6, 10) ,pch=c(1,15,16,17,18,19,20),col=c)
+dev.off()
+
+
+#Summer 2021
+png(file="images/ANPP_FORECAST_ALL_SU2021.png",
+    width=1000, height=1000, pointsize = 25)
+Su21n <-"2021-06-14"
+Su21x <- "2021-12-31"
+c <- "#418AB3"
+Taylor(Su21n,Su21x,c,"Summer 2021")
+text(x=120,
+     y=100,
+     pos=1, srt = 25,
+     label="RMSE (lb/acre)",font=3,cex=0.8)
+dfz <- Legends(Su21n,Su21x)
+legend(225,240,legend=substr(dfz$name, 6, 10) ,pch=c(1,15,16,17,18,19,20),col=c)
+>>>>>>> Stashed changes
 dev.off()
 
 #Summer 2022
@@ -404,14 +544,24 @@ text(x=300,
      pos=1, srt = 20,
      label="RMSE (lb/acre)",font=3,cex=0.8)
 dfz <- Legends(Su22n,Su22x)
+<<<<<<< Updated upstream
 legend(550,550,legend=substr(dfz$name, 6, 10) ,pch=c(1,15,16,17,18,19,20),col=c)
 dev.off()
 
+=======
+legend(520,600,legend=substr(dfz$name, 6, 10) ,pch=c(1,15,16,17,18,19,20),col=c)
+dev.off()
+
+
+>>>>>>> Stashed changes
 ######
 ############DRAW BY ZONE
 #####
 ##WINTER
+<<<<<<< Updated upstream
 ANPP_FORECAST_W <- split(ANPP_FORECAST_W, ANPP_FORECAST_W$Forecast)
+=======
+>>>>>>> Stashed changes
 models <- model_select(ANPP_FORECAST_W)
 #Draw the Maps
 #Spring 2020
@@ -436,7 +586,11 @@ text(x=90,
      pos=1, srt = 25,
      label="RMSE (lb/acre)",font=3,cex=0.8)
 dfz <- Legends(Sp21n,Sp21x)
+<<<<<<< Updated upstream
 legend(155, 160, legend=substr(dfz$name, 6, 10) ,pch=c(1,15,16,17,18,19,20),col=c) 
+=======
+legend(155,160, legend=substr(dfz$name, 6, 10) ,pch=c(1,15,16,17,18,19,20),col=c) +
+>>>>>>> Stashed changes
 dev.off()
 
 #Spring 2022
