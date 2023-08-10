@@ -79,7 +79,7 @@ Forecast_Ratio <- do.call(rbind, dfx) #Finish de DF back to begigin
 rownames(Forecast_Ratio) <- NULL #Eliminates row names
 df <- split(Forecast_Ratio, Forecast_Ratio$Forecast)
 
-
+write.csv(Forecast_Ratio, "data/ANPP_2020-2022.csv")
 #Spiting data in regions
 ANPP_FORECAST_W <- subset(Forecast_Ratio, pptRatioSummerWinter < '0.8')
 ANPP_FORECAST_T <- Forecast_Ratio  %>%   filter(pptRatioSummerWinter >0.8 &  pptRatioSummerWinter < 1.2)
