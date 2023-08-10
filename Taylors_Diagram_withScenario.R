@@ -19,10 +19,10 @@ GC <- read.csv(file = "data/az_nm_2000_2020.csv", head = TRUE, sep=",")
 
 #Forecast Data
 gfg_data_22 <- read.csv(file = "data/grass_cast_2022.csv", head = TRUE, sep=",") %>% 
-  subset(select=c("gridID","Year","Forecast","NPP_predict_below","NPP_predict_avg","NPP_predict_above","Order"))
+  subset(select=c("gridID","Year","Forecast","deltaNPP_below","deltaNPP_avg","deltaNPP_above","Order"))
 
 gfg_data_21_20 <- read.csv(file = "data/grass_cast_20-21.csv", head = TRUE, sep=",") %>% 
-  subset(select=c("gridID","Year","Forecast","NPP_predict_below","NPP_predict_avg","NPP_predict_above","Order"))
+  subset(select=c("gridID","Year","Forecast","deltaNPP_below","deltaNPP_avg","deltaNPP_above","Order"))
 
 forcasts <- rbind(gfg_data_22,gfg_data_21_20) 
 
@@ -85,8 +85,8 @@ ANPP_FORECAST_W <- subset(Forecast_Ratio, pptRatioSummerWinter < '0.8')
 ANPP_FORECAST_T <- Forecast_Ratio  %>%   filter(pptRatioSummerWinter >0.8 &  pptRatioSummerWinter < 1.2)
 ANPP_FORECAST_S <- subset(Forecast_Ratio, pptRatioSummerWinter > '1.2')
 
-##############################################################################
-########Stats Table to check Taylor Plots
+#######Stats Table to check Taylor Plots #######################################################################
+
 
 Stats <- function(data, n, x, scenario) {
   df <- data[data$Forecast >= as.Date(n) & data$Forecast <= as.Date(x), ]
@@ -176,10 +176,7 @@ SummerA <- getSummerStats(5,"Avg")
 SummerC <- getSummerStats(6,"Abv")
 
 Summer <- rbind(SummerB, SummerA, SummerC)
-Summer %>%
-  arrange(desc(.data[[RMSE]]))
 
-colnames(Summer)
 
 ####### STATS WINTER REGION ALL SCNEARIOS (SR = Winter Region)
 #Sring_SR
@@ -339,27 +336,27 @@ Taylor_Maker <- function(df, zone, n, x, season, x_text, y_text, angle) {
   ref <- as.numeric(modelsA[[tail(dfz$order, n=1)]])
   
   #Generates the plot
-  png(file= paste0("images/taylor/TaylorDiagram_",substr(season, nchar(season) - 5, nchar(season)),year,"_",zone,".png"),
+  png(file= paste0("images/taylor/new/TaylorDiagram_",season,year,"_",zone,".png"),
       width=1000, height=1000, pointsize = 25) 
   
   #Creates first diagram
-  taylor.diagram(ref,as.numeric(modelsA[[dfz$order[1]]]), col=ColorA, pch=15, cex=1.2, pcex = 2.5,
+  taylor.diagram(ref,as.numeric(modelsA[[dfz$order[1]]]), col=ColorA, pch=15, cex=1, pcex = 2,
                  main = paste(season,year),
-                 xlab="Standart Deviation (lb/acre)",
-                 pos.cor=TRUE,
+                 pos.cor=FALSE,
                  show.gamma = T,
-                 sd.arcs = T)
+                 sd.arcs = T,
+                 normalize = F, main.y = 0.2)
   
   #Adds diagrams
   for (i in 2:(length(dfz$order)-1)){
     
     #BElow avg Model
-    taylor.diagram(ref,as.numeric(modelsA[[dfz$order[i]]]), add=TRUE,col=ColorA,pch=head(c(15,16,17,18,19,20), length(dfz$order)-1)[i], cex=1.2,
-                   pcex = 2.5)
+    taylor.diagram(ref,as.numeric(modelsA[[dfz$order[i]]]), add=TRUE,col=ColorA,pch=head(c(15,16,17,18,19,20), length(dfz$order)-1)[i], cex=1,
+                   pcex = 2)
     
     #Separates the Null Hypothesis
-    taylor.diagram(ref,as.numeric(modelsA[[tail(dfz$order, n=1)]]), add=TRUE,col="black",pch=4, cex=1.2,
-                   pcex = 2.5) 
+    taylor.diagram(ref,as.numeric(modelsA[[tail(dfz$order, n=1)]]), add=TRUE,col="black",pch=4, cex=1,
+                   pcex = 2) 
     
     #Cex = plotting text and symbols should be scaled relative to the default
     #pcex = point expansion for the plotted points.
@@ -368,20 +365,22 @@ Taylor_Maker <- function(df, zone, n, x, season, x_text, y_text, angle) {
   
   for (i in 1:(length(dfz$order)-1)){
     #Average model
-    taylor.diagram(ref,as.numeric(modelsB[[dfz$order[i]]]), add=TRUE,col=ColorB,pch=head(c(15,16,17,18,19,20), length(dfz$order)-1)[i], cex=1.2,
-                   pcex = 2.5, order = -100) 
+    taylor.diagram(ref,as.numeric(modelsB[[dfz$order[i]]]), add=TRUE,col=ColorB,pch=head(c(15,16,17,18,19,20), length(dfz$order)-1)[i], cex=1,
+                   pcex = 2, order = -100) 
     #Above avg model
-    taylor.diagram(ref,as.numeric(modelsC[[dfz$order[i]]]), add=TRUE,col=ColorC, pch=head(c(15,16,17,18,19,20), length(dfz$order)-1)[i], cex=1.2,
-                   pcex = 2.5) 
+    taylor.diagram(ref,as.numeric(modelsC[[dfz$order[i]]]), add=TRUE,col=ColorC, pch=head(c(15,16,17,18,19,20), length(dfz$order)-1)[i], cex=1,
+                   pcex = 2) 
   }
   
-  legend("topright", title="Dates | Scenario", 
+  legend("bottom", title="Forecast Dates and Scenarios", 
          legend=c(substr(dfz$name, 6, 10), "Bellow", "Average", "Above"), 
          col=c(rep("black",length(substr(dfz$name, 6, 10))),ColorA,ColorB,ColorC), pch=c(head(c(15,16,17,18,19,20), length(dfz$order)-1),13,rep(16,3)),
-         bty="n", border=F, ncol=1, x.intersp = 1.5)
+         bty="n", border=F, ncol=5, x.intersp = 1.5)
+  
+  
   
   # Add text box
-  text(x = x_text, y = y_text, pos = 1, srt = angle, label = "RMSE (lb/acre)", font = 3, cex = 0.8)
+  #text(x = x_text, y = y_text, pos = 1, srt = angle, label = "RMSE (lb/acre)", font = 3, cex = 0.8)
   
   dev.off()
   
@@ -389,7 +388,7 @@ Taylor_Maker <- function(df, zone, n, x, season, x_text, y_text, angle) {
 ########## ALL
 #2020
 Taylor_Maker(ANPP_FORECAST_ALL, "ALL", "2020-05-15","2020-06-02","Spring",90,54,20)
-Taylor_Maker(ANPP_FORECAST_ALL, "ALL", "2020-06-16","2020-09-01","Summer",180,202,20)
+Taylor_Maker(ANPP_FORECAST_ALL, "ALL", "2020-06-16","2020-09-01","Summer",50,100,20)
 
 #2021
 Taylor_Maker(ANPP_FORECAST_ALL, "ALL", "2021-04-14","2021-06-01","Spring",140,110,12)
