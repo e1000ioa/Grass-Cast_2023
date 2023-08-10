@@ -176,6 +176,10 @@ SummerA <- getSummerStats(5,"Avg")
 SummerC <- getSummerStats(6,"Abv")
 
 Summer <- rbind(SummerB, SummerA, SummerC)
+Summer %>%
+  arrange(desc(.data[[RMSE]]))
+
+colnames(Summer)
 
 ####### STATS WINTER REGION ALL SCNEARIOS (SR = Winter Region)
 #Sring_SR

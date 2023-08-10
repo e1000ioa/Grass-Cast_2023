@@ -1,0 +1,4 @@
+"Variable","R_squared_JFM","p_value_JFM","R_squared_MAM","p_value_MAM","R_squared_JJA","p_value_JJA","R_squared_OND","p_value_OND"
+"high_mean_percent_anom",0.109,"p<0.05",0.126,"p<0.05",0.031,"p=0.25",0.081,"p=0.05"
+"high_med_percent_anom",0.102,"p<0.05",0.118,"p<0.05",0.032,"p=0.25",0.074,"p=0.10"
+"high_stdev_percent_anom",0.082,"p=0.05",0.086,"p=0.05",0.009,"p=0.55",0.085,"p=0.05"
