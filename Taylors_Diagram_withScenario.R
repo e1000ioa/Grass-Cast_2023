@@ -184,6 +184,8 @@ Summer <- rbind(SummerB, SummerA, SummerC)
 
 #Creates one dataframe
 
+custom_order <- c("Blw", "Avg", "Abv")
+
 Southwest_Stats <- list(Summer = Summer, Spring = Spring) %>%
   do.call(rbind, .) %>%
   as.data.frame() %>%
@@ -191,9 +193,10 @@ Southwest_Stats <- list(Summer = Summer, Spring = Spring) %>%
   mutate(Season = sub("\\..*$", "", RowNames)) %>%
   select(-RowNames) %>% 
   select(Season, everything()) %>% 
+  mutate(Scenario = factor(Scenario, levels = custom_order)) %>%
   arrange(Season, Forecast, Scenario)
 
-write.csv(Southwest_Stats, "data/Southwest_Stats.csv")
+write.csv(Southwest_Stats, "data/Southwest_Stats2.csv")
 
 ####### STATS WINTER REGION ALL SCNEARIOS (SR = Winter Region)
 
@@ -337,6 +340,7 @@ Regions <- list(Winter_Region = Winter_Region, Transition_Region = Transition_Re
   mutate(Region = sub("\\..*$", "", RowNames)) %>%
   select(-RowNames) %>% 
   select(Region, everything()) %>% 
+  mutate(Scenario = factor(Scenario, levels = custom_order)) %>%
   arrange(Region, Season, Forecast, Scenario)
 
 write.csv(Regions, "data/regions_stats.csv")
