@@ -8,6 +8,7 @@ library(lubridate) #Options to works with date formats
 library(zoo) #Infrastructure for Regular and Irregular Time Series
 library(plotrix) #add talyor pltos
 library(Metrics) #has the rmse fucntion
+library(scales) #p value fomat
 
 set.seed(108)
 
@@ -104,11 +105,14 @@ Stats <- function(data, n, x, scenario) {
     cf <- coef(mod)
     slope <- cf[2]
     intercept <- cf[1]
+    correlation <- cor(df_n[[scenario]], df_x[[scenario]])
     r2 <- summary(mod)$r.squared
     bias <- mean(df_n[[scenario]] - df_x[[scenario]], na.rm = TRUE)
     rmse <- sqrt(mean((df_n[[scenario]] - df_x[[scenario]])^2))
     std_error <- summary(mod)$coefficients[2, 2]
-    p_value <- format.pval(summary(mod)$coefficients[2, 4])
+    p_value <- pvalue(summary(mod)$coefficients[2, 4], accuracy = 0.05, # Number to round to
+                   decimal.mark = ".", # The character to be used to indicate the numeric decimal point
+                   add_p = TRUE ) # Add "p=" before the value?
     
     ANPP.r <- data.frame(
       MEAN = mean,
@@ -116,6 +120,7 @@ Stats <- function(data, n, x, scenario) {
       COUNT = count,
       SLOPE = slope,
       INTERCEPT = intercept,
+      COR = correlation,
       R2 = r2,
       STD_ERROR = std_error,
       BIAS = bias,
@@ -125,7 +130,7 @@ Stats <- function(data, n, x, scenario) {
     
     ANPP.r$Forecast <- names(df)[n]
     
-    ANPP.r <- ANPP.r[, c("Forecast", "MEAN", "SD", "COUNT", "SLOPE", "INTERCEPT", "R2", "STD_ERROR", "BIAS", "RMSE", "P_VALUE")]
+    ANPP.r <- ANPP.r[, c("Forecast", "MEAN", "SD", "COUNT", "SLOPE", "INTERCEPT", "COR", "R2", "STD_ERROR", "BIAS", "RMSE", "P_VALUE")]
     
     return(ANPP.r)
   }
@@ -177,8 +182,21 @@ SummerC <- getSummerStats(6,"Abv")
 
 Summer <- rbind(SummerB, SummerA, SummerC)
 
+#Creates one dataframe
+
+Southwest_Stats <- list(Summer = Summer, Spring = Spring) %>%
+  do.call(rbind, .) %>%
+  as.data.frame() %>%
+  tibble::rownames_to_column(var = "RowNames") %>%
+  mutate(Season = sub("\\..*$", "", RowNames)) %>%
+  select(-RowNames) %>% 
+  select(Season, everything()) %>% 
+  arrange(Season, Forecast, Scenario)
+
+write.csv(Southwest_Stats, "data/Southwest_Stats.csv")
 
 ####### STATS WINTER REGION ALL SCNEARIOS (SR = Winter Region)
+
 #Sring_SR
 getSpringSRStats <- function(scenario,nom) {
   n2020 <- Stats(ANPP_FORECAST_W, "2020-05-15","2020-06-02", scenario)
@@ -210,6 +228,17 @@ getSummerSRStats <- function(scenario,nom) {
 Summer_SR <- getSummerSRStats(4,"Blw") 
 Summer_SR <- rbind(Summer_SR, getSummerSRStats(5,"Avg"))
 Summer_SR <- rbind(Summer_SR, getSummerSRStats(6,"Abv"))
+
+#Creates one dataframe
+
+Winter_Region <- list(Spring = Spring_SR, Summer = Summer_SR) %>%
+  do.call(rbind, .) %>%
+  as.data.frame() %>%
+  tibble::rownames_to_column(var = "RowNames") %>%
+  mutate(Season = sub("\\..*$", "", RowNames)) %>%
+  select(-RowNames)  %>% 
+  select(Season, everything()) %>% 
+  arrange(Season, Forecast, Scenario) 
 
 
 ####### STATS SRANSITION REGION
@@ -247,6 +276,16 @@ Summer_SR <- rbind(Summer_SR, getSummerSRStats(5,"Avg"))
 Summer_SR <- rbind(Summer_SR, getSummerSRStats(6,"Abv"))
 
 
+Transition_Region <- list(Spring = Spring_SR, Summer = Summer_SR) %>%
+  do.call(rbind, .) %>%
+  as.data.frame() %>%
+  tibble::rownames_to_column(var = "RowNames") %>%
+  mutate(Season = sub("\\..*$", "", RowNames)) %>%
+  select(-RowNames)  %>% 
+  select(Season, everything()) %>% 
+  arrange(Season, Forecast, Scenario) 
+
+
 ####### STATS SUMMER REGION
 #Sring_SR
 getSpringSRStats <- function(scenario,nom) {
@@ -281,6 +320,27 @@ Summer_SR <- rbind(Summer_SR, getSummerSRStats(5,"Avg"))
 Summer_SR <- rbind(Summer_SR, getSummerSRStats(6,"Abv"))
 
 
+Summer_Region <- list(Spring = Spring_SR, Summer = Summer_SR) %>%
+  do.call(rbind, .) %>%
+  as.data.frame() %>%
+  tibble::rownames_to_column(var = "RowNames") %>%
+  mutate(Season = sub("\\..*$", "", RowNames)) %>%
+  select(-RowNames)  %>% 
+  select(Season, everything()) %>% 
+  arrange(Season, Forecast, Scenario) 
+
+
+Regions <- list(Winter_Region = Winter_Region, Transition_Region = Transition_Region, Summer_Region = Summer_Region) %>%
+  do.call(rbind, .) %>%
+  as.data.frame() %>%
+  tibble::rownames_to_column(var = "RowNames") %>%
+  mutate(Region = sub("\\..*$", "", RowNames)) %>%
+  select(-RowNames) %>% 
+  select(Region, everything()) %>% 
+  arrange(Region, Season, Forecast, Scenario)
+
+write.csv(Regions, "data/regions_stats.csv")
+
 ##############################################################################
 #Select data to add to the Taylor Diagram
 
@@ -293,7 +353,7 @@ ANPP_FORECAST_S <- split(ANPP_FORECAST_S, ANPP_FORECAST_S$Forecast)
 #############
 ################## TAYLOR PLOTS
 
-Taylor_Maker <- function(df, zone, n, x, season, x_text, y_text, angle) {
+Taylor_Maker <- function(df, zone, n, x, title) {
   
   #Where:
   #n = date start
@@ -336,12 +396,12 @@ Taylor_Maker <- function(df, zone, n, x, season, x_text, y_text, angle) {
   ref <- as.numeric(modelsA[[tail(dfz$order, n=1)]])
   
   #Generates the plot
-  png(file= paste0("images/taylor/new/TaylorDiagram_",season,year,"_",zone,".png"),
+  png(file= paste0("images/taylor/new/TaylorDiagram_",title,".png"),
       width=1000, height=1000, pointsize = 25) 
   
   #Creates first diagram
   taylor.diagram(ref,as.numeric(modelsA[[dfz$order[1]]]), col=ColorA, pch=15, cex=1, pcex = 2,
-                 main = paste(season,year),
+                 main = NULL,
                  pos.cor=FALSE,
                  show.gamma = T,
                  sd.arcs = T,
@@ -387,53 +447,53 @@ Taylor_Maker <- function(df, zone, n, x, season, x_text, y_text, angle) {
 }
 ########## ALL
 #2020
-Taylor_Maker(ANPP_FORECAST_ALL, "ALL", "2020-05-15","2020-06-02","Spring",90,54,20)
-Taylor_Maker(ANPP_FORECAST_ALL, "ALL", "2020-06-16","2020-09-01","Summer",50,100,20)
+Taylor_Maker(ANPP_FORECAST_ALL, "ALL", "2020-05-15","2020-06-02","Spring2020")
+Taylor_Maker(ANPP_FORECAST_ALL, "ALL", "2020-06-16","2020-09-01","Summer2020")
 
 #2021
-Taylor_Maker(ANPP_FORECAST_ALL, "ALL", "2021-04-14","2021-06-01","Spring",140,110,12)
-Taylor_Maker(ANPP_FORECAST_ALL, "ALL", "2021-06-16","2021-08-24","Summer",250,400,20)
+Taylor_Maker(ANPP_FORECAST_ALL, "ALL", "2021-04-14","2021-06-01","Spring2021")
+Taylor_Maker(ANPP_FORECAST_ALL, "ALL", "2021-06-16","2021-08-24","Summer2021")
 
 #2022
-Taylor_Maker(ANPP_FORECAST_ALL, "ALL", "2022-04-05","2022-05-31","Spring",90,55,18)
-Taylor_Maker(ANPP_FORECAST_ALL, "ALL", "2022-06-14","2022-09-01","Summer",290,420,12)
+Taylor_Maker(ANPP_FORECAST_ALL, "ALL", "2022-04-05","2022-05-31","Spring2022")
+Taylor_Maker(ANPP_FORECAST_ALL, "ALL", "2022-06-14","2022-09-01","Summer2022")
 
 ##### WINTER ZONE
 #2020
-Taylor_Maker(ANPP_FORECAST_W, "W", "2020-05-15","2020-06-02","Winter Zone: Spring",85,55,15)
-Taylor_Maker(ANPP_FORECAST_W, "W", "2020-06-16","2020-09-01","Winter Zone: Summer",100,105,18)
+Taylor_Maker(ANPP_FORECAST_W, "W", "2020-05-15","2020-06-02","2020WinterZone_Spring")
+Taylor_Maker(ANPP_FORECAST_W, "W", "2020-06-16","2020-09-01","2020WinterZone_Summer")
 
 #2021
-Taylor_Maker(ANPP_FORECAST_W, "W", "2021-04-14","2021-06-01","Winter Zone: Spring",75,100,20)
-Taylor_Maker(ANPP_FORECAST_W, "W", "2021-06-16","2021-08-24","Winter Zone: Summer",95,90,32)
+Taylor_Maker(ANPP_FORECAST_W, "W", "2021-04-14","2021-06-01","2021WinterZone_Spring")
+Taylor_Maker(ANPP_FORECAST_W, "W", "2021-06-16","2021-08-24","2021WinterZone_Summer")
 
 #2022
-Taylor_Maker(ANPP_FORECAST_W, "W", "2022-04-05","2022-05-31","Winter Zone: Spring",60,53,20)
-Taylor_Maker(ANPP_FORECAST_W, "W", "2022-06-14","2022-09-01","Winter Zone: Summer",120,100,20)
+Taylor_Maker(ANPP_FORECAST_W, "W", "2022-04-05","2022-05-31","2022WinterZone_Spring")
+Taylor_Maker(ANPP_FORECAST_W, "W", "2022-06-14","2022-09-01","2022WinterZone_Summer")
 
 ##### TRANSITION ZONE
 #2020
-Taylor_Maker(ANPP_FORECAST_T, "T", "2020-05-15","2020-06-02","Transition Zone: Spring",85,55,15)
-Taylor_Maker(ANPP_FORECAST_T, "T", "2020-06-16","2020-09-01","Transition Zone: Summer",120,102,20)
+Taylor_Maker(ANPP_FORECAST_T, "T", "2020-05-15","2020-06-02","2020TransitionZone_Spring")
+Taylor_Maker(ANPP_FORECAST_T, "T", "2020-06-16","2020-09-01","2020TransitionZone_Summer")
 
 #2021
-Taylor_Maker(ANPP_FORECAST_T, "T", "2021-04-14","2021-06-01","Transition Zone: Spring",100,102,20)
-Taylor_Maker(ANPP_FORECAST_T, "T", "2021-06-16","2021-08-24","Transition Zone: Summer",150,202,20)
+Taylor_Maker(ANPP_FORECAST_T, "T", "2021-04-14","2021-06-01","2021TransitionZone_Spring")
+Taylor_Maker(ANPP_FORECAST_T, "T", "2021-06-16","2021-08-24","2021TransitionZone_Summer")
 
 #2022
-Taylor_Maker(ANPP_FORECAST_T, "T", "2022-04-05","2022-05-31","Transition Zone: Spring",70,51,22)
-Taylor_Maker(ANPP_FORECAST_T, "T", "2022-06-14","2022-09-01","Transition Zone: Summer",148,205,20)
+Taylor_Maker(ANPP_FORECAST_T, "T", "2022-04-05","2022-05-31","2022TransitionZone_Spring")
+Taylor_Maker(ANPP_FORECAST_T, "T", "2022-06-14","2022-09-01","2022TransitionZone_Summer")
 
 ##### SUMMER ZONE
 #2020
-Taylor_Maker(ANPP_FORECAST_S, "S", "2020-05-15","2020-06-02","Summer Zone: Spring",90,54,20)
-Taylor_Maker(ANPP_FORECAST_S, "S", "2020-06-16","2020-09-01","Summer Zone: Summer",180,202,20)
+Taylor_Maker(ANPP_FORECAST_S, "S", "2020-05-15","2020-06-02","2020SummerZone_Spring")
+Taylor_Maker(ANPP_FORECAST_S, "S", "2020-06-16","2020-09-01","2020SummerZone_Summer")
 
 #2021
-Taylor_Maker(ANPP_FORECAST_S, "S", "2021-04-14","2021-06-01","Summer Zone: Spring",120,106,18)
-Taylor_Maker(ANPP_FORECAST_S, "S", "2021-06-16","2021-08-24","Summer Zone: Summer",250,392,20)
+Taylor_Maker(ANPP_FORECAST_S, "S", "2021-04-14","2021-06-01","2021SummerZone_Spring")
+Taylor_Maker(ANPP_FORECAST_S, "S", "2021-06-16","2021-08-24","2021SummerZone_Summer")
 
 #2022
-Taylor_Maker(ANPP_FORECAST_S, "S", "2022-04-05","2022-05-31","Summer Zone: Spring",65,50,25)
-Taylor_Maker(ANPP_FORECAST_S, "S", "2022-06-14","2022-09-01","Summer Zone: Summer",240,210,20)
+Taylor_Maker(ANPP_FORECAST_S, "S", "2022-04-05","2022-05-31","2022SummerZone_Spring")
+Taylor_Maker(ANPP_FORECAST_S, "S", "2022-06-14","2022-09-01","2022SummerZone_Summer")
 
