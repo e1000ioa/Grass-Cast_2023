@@ -1,11 +1,11 @@
-install.packages("dplyr")  # Install the dplyr package (only required once)
 library(dplyr)             # Load the dplyr package
 library(tidyr)
 library(purrr)
 library(data.table)
 library(geosphere) #nearest Neighbourt
 library(stringdist) #cluster 
-
+library(lubridate)
+library(splusTimeDate)
 
 # List all files in the folder
 AZ_files <- list.files(path = "Rain_Data/Arizona", pattern = "\\.csv$", full.names = TRUE)
