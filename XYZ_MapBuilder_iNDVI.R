@@ -18,11 +18,47 @@ library(ggsn) #Arrow and scale for GGPLOT MAPS
 library(ggspatial) #Spatial data plus the power of the ggplot2 framework means easier mapping
 library(tigris) #spatial data from the Census Bureau, has tribal nations shp.
 
+# List of libraries required
+libraries <- c("maps", "rgdal", "sp", "sf", "raster", "akima", 
+               "scico", "ggsn", "ggspatial", "tigris")
+
+# Function to install and load libraries
+install_and_load <- function(lib){
+  if (!require(lib, character.only = TRUE)) {
+    install.packages(lib, dependencies = TRUE)
+    library(lib, character.only = TRUE)
+  }
+}
+
+# Loop through the list of libraries and install/load them
+lapply(libraries, install_and_load)
+
 
 ################
 #Load Data frame
-Forecast_202122 <- read.csv("data/Forecast_Ratio.csv")
+#Grind ID 
+GC_indvi <- read.csv(file = "data/az_nm_2000_2020.csv", head = TRUE, sep=",") %>% 
+  subset(select = c("gridID", "year", "spring_delta_ndvi", "summer_delta_ndvi", "spring_z_ndvi", "summer_z_ndvi","lon","lat")) %>%
+  filter(year == 2020) %>%
+  pivot_longer(cols = c(spring_delta_ndvi, summer_delta_ndvi, spring_z_ndvi, summer_z_ndvi),
+               names_to = c("Season", ".value"),
+               names_pattern = "(spring|summer)_(.*)") 
+
+
+Forecast_202122 <- read.csv("data/Forecast_Ratio.csv") 
 unique(Forecast_202122$Forecast)
+
+# Filter Forecast data for the year 2020 and specific Forecast dates
+Forecast_GC_2020 <- Forecast_202122 %>%
+  filter(Year == 2020) %>%
+  filter(Forecast %in% c("2020-06-02", "2020-09-01")) %>%
+  mutate(Season = case_when(
+    Forecast == "2020-06-02" ~ "spring",
+    Forecast == "2020-09-01" ~ "summer"
+  ))
+
+# Join GC_indvi and Forecast_GC_2020 by gridID
+combined_data <- left_join(GC_indvi, Forecast_GC_2020, by = "gridID")
 
 #Fixing the no data 
 # replace -999 with 31 using mutate_all()
@@ -30,7 +66,7 @@ Forecast_202122 <- mutate_all(Forecast_202122, ~ifelse(. == -999, 31, .))
 
 
 Dates_List <- unique(Forecast_202122$Forecast)
-x.xi1 <- order(as.Date(Dates_List, format = "%Y-%m-%d"))
+i1 <- order(as.Date(Dates_List, format = "%Y-%m-%d"))
 Forecast_List <- Dates_List[i1]
 
 
@@ -87,8 +123,6 @@ nat_union <- st_simplify(nat_union, dTolerance = 1000)
 diff_c <- st_difference(sf_c,nat_union)
 plot(diff_c)
 
-
-
 #Test the map
 ggplot() +
   #geom_sf(data = sf_c, fill = "red", color="gold") +
@@ -99,70 +133,86 @@ ggplot() +
 ##########
 ############Function
 
-map_annp <- function(date,season,measure,unit,colname) {
-  
-  df <- Forecast_202122 %>% 
-  filter(Forecast == date) %>%
-    subset(select=c("longitude","latitude",colname))
-  
-  colnames(df) <- c('x', 'y', 'z')
 
+# Load necessary libraries
+library(dplyr)
+library(akima)
+library(ggplot2)
+library(ggspatial)
+library(sf)
+library(raster)
+library(scales)
+
+
+map_indvi <- function(season, measure, units, year, colname) {
+  
+  # Filter data by the season and select required columns
+  df <- GC_indvi %>%
+    filter(Season == season) %>%
+    dplyr::select(lon, lat, all_of(colname))
+  
+  # Rename columns to avoid conflicts with function names
+  colnames(df) <- c("longitude", "latitude", "value")
+  
   ############
-  ## CREATES RASTER
+  ## CREATE RASTER
   # Interpolate the values to a regularly spaced grid
-  f <- with(df, interp(x, y, z))
+  f <- akima::interp(x = df$longitude, y = df$latitude, z = df$value)
   
   # Create a raster from the interpolated values
   r <- raster(f, crs = "+proj=utm +zone=11 +datum=WGS84 +units=m +no_defs")
   
-  #Crop the Raster and save it to data frame for ggplot
+  # Crop the raster and save it to data frame for ggplot
   cr <- crop(r, extent(south_west_merged))
   
-  #Prepare Df to be drawn
-  cr_raster <- as.data.frame(rasterToPoints(cr)) #Changes the colum name z to layer
-
-  #Change df to spatial object
-  st <- df %>% st_as_sf(coords = c("x", "y")) %>% st_set_crs(st_crs(south_west_s))
+  # Prepare data frame for ggplot
+  cr_raster <- as.data.frame(rasterToPoints(cr)) # Changes the column name 'value' to 'layer'
+  
+  # Convert df to spatial object
+  st <- df %>%
+    st_as_sf(coords = c("longitude", "latitude")) %>%
+    st_set_crs(st_crs(south_west_s))
+  
   
   ############
-  ##DRAW
+  ## DRAW MAP
   
   a <- ggplot() +
-    #Add Raster and modify Scale +
-    geom_raster(data = cr_raster, aes(x = x, y = y, fill = layer)) + 
-    scale_fill_stepsn(name = paste(measure,unit),
-                      colours=c("#f90207", "#fd9200", "#fffd05", "#baf9a1", "#05fdff", "#3e83f9", '#0200fc'),
-                      limits = c(-40,40),
-                      breaks = c(-30, -15, -5, 0, 5, 15,30),
-                      values = scales::rescale(c(-30, -15, -5, 5, 15,30)),
-                      labels = c("<-30", "-30 to -15", "-15 to -5", "-5 to 5", "5 to 15", "15 to 30", ">30")) +
+    # Add raster and modify scale
+    geom_raster(data = cr_raster, aes(x = x, y = y, fill = layer)) +
+    scale_fill_stepsn(
+      name = paste(measure, units),  # Corrected here
+      colours = c("#f90207", "#fd9200", "#fffd05", "#baf9a1", "#05fdff", "#3e83f9", '#0200fc'),
+      limits = c(-40, 40),
+      breaks = c(-30, -15, -5, 0, 5, 15, 30),
+      values = scales::rescale(c(-30, -15, -5, 5, 15, 30)),
+      labels = c("<-30", "-30 to -15", "-15 to -5", "-5 to 5", "5 to 15", "15 to 30", ">30")
+    )  +
     
-    
-    #Add Spatial Elements
+    # Add spatial elements
     geom_sf(data = south_west_merged, fill = NA, color = "white", linewidth = 2, linetype = "solid") +
-    geom_sf(data = south_west_s, fill = NA, color=alpha("#000000",1), linewidth= 1.4,linetype = "solid") +
-    geom_sf(data = diff_c, fill = NA, color=alpha("#000000",0.6), linewidth=0.5,linetype = "dotted") +
+    geom_sf(data = south_west_s, fill = NA, color = alpha("#000000", 1), linewidth = 1.4, linetype = "solid") +
+    geom_sf(data = south_west_c, fill = NA, color = alpha("#000000", 0.6), linewidth = 0.5, linetype = "dotted") +
+    geom_sf(data = diff_c, fill = NA, color = alpha("#000000", 0.6), linewidth = 0.5, linetype = "dotted") +
     
-    ##Add Tribal Nations Maps
-    geom_sf(data = nat, color=alpha("grey",0.8), fill=NA, linewidth=0.5,linetype = "solid") +
+    # Add Tribal Nations Maps
+    geom_sf(data = nat, color = alpha("grey", 0.8), fill = NA, linewidth = 0.5, linetype = "solid") +
     
-    #Add the states in the background
-    geom_sf(data = other_states, fill = "grey", color=alpha("grey40",0.4), linewidth=0.5,linetype = "dashed") +
-    theme_minimal() +
+    # Add the states in the background
+    geom_sf(data = other_states, fill = "grey", color = alpha("grey40", 0.4), linewidth = 0.5, linetype = "dashed") +
+    theme_minimal()  +
     
-
-    
-    #Add Text Elements 
+    # Add text elements
     xlab(NULL) + 
     ylab(NULL) +
-    ggtitle(label = paste(measure, season,substr(date, 1, 4)), subtitle = date) +
+    ggtitle(label = paste(year, measure, season)) +
     
-    #Element Modification
+    # Element modification
     theme(
       legend.direction = "vertical",  
-      legend.position=c(0.12, 0.3),
+      legend.position = c(0.12, 0.3),
       legend.justification = c(0.5, 0.5),
-      plot.margin = unit(c(0.4,0.4,0.4,0.4), "cm"),
+      plot.margin = unit(c(0.4, 0.4, 0.4, 0.4), "cm"),
       legend.background = element_rect(), 
       legend.key = element_blank(),
       plot.title = element_text(hjust = 0.5),
@@ -171,16 +221,15 @@ map_annp <- function(date,season,measure,unit,colname) {
       legend.text = element_text(size = 8)
     ) +
     
-    #zoom map to cordinates
-    coord_sf(xlim = c(-118, -103),ylim = c(37, 30)) 
-  
-  ## ADD SCALE AN ARROW
-  
-  b <- a +
+    # Zoom map to coordinates
+    coord_sf(xlim = c(-118, -103), ylim = c(37, 30)) 
+    ## ADD SCALE AND NORTH ARROW
+    
+    b <- a +
     ggspatial::annotation_scale(
       location = "br",
-      bar_cols = c("black", "white")) +
-    
+      bar_cols = c("black", "white")
+    ) 
     ggspatial::annotation_north_arrow(
       location = "tr", which_north = "true",
       pad_x = unit(9.5, "cm"),
@@ -190,41 +239,30 @@ map_annp <- function(date,season,measure,unit,colname) {
         line_col = "black",
         fill = c("white", "black"),
         text_col = "black",
-        #text_family = "",
-        text_face = NULL,
-        text_size = 10,
-        text_angle = 0))
+        text_size = 10
+      )
+    )
+    
   
-  #Save the Plots
-  
-  ggsave(
-    paste0("images/",measure,"_",season,"_",date,".png"),
-    plot = last_plot(),
-    device = NULL,
-    path = NULL,
-    scale = 1,
-    width = NA,
-    height = NA,
-    #units = c("in", "cm", "mm", "px"),
-    dpi = 300,
-    limitsize = TRUE,
-    bg = "white",
-  )
-  return(b)
+    ggsave(
+      paste0("images/",season,"_iNDVI",year,".png"),
+      plot = last_plot(),
+      device = NULL,
+      path = NULL,
+      scale = 1,
+      width = NA,
+      height = NA,
+      #units = c("in", "cm", "mm", "px"),
+      dpi = 300,
+      limitsize = TRUE,
+      bg = "white",
+    )
+  return(a) 
 }
 
+# Example usage
+map_indvi("summer", "Δ iNDVI", "(%)", "2020", "delta_ndvi")
+map_indvi("spring", "Δ iNDVI", "(%)", "2020", "delta_ndvi")
 
-setwd("/Users/lio/Git/Grass-Cast_2023/Images2024")
-############
-#Result
-# I choose to get a for loop for all the maps at once.
-#I add what Season in the parameters, and then, erase the other season. 
 
-for (i in 1:length(Forecast_List)){
-  
-  map_annp(Forecast_List[i],"SUMMER FORECAST","ANPP","(%)","deltaNPP_avg")
-  
-  
-}
-1  
   

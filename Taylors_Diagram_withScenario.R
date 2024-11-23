@@ -27,6 +27,11 @@ gfg_data_21_20 <- read.csv(file = "data/grass_cast_20-21.csv", head = TRUE, sep=
 
 forcasts <- rbind(gfg_data_22,gfg_data_21_20) 
 
+#Forecast 2024 # From File_Process_2024
+
+forecast <- combined_df %>% 
+  subset(select=c("gridID","Year","Forecast","deltaNPP_below","deltaNPP_avg","deltaNPP_above"))
+
 ##Parse the dates into a consistent format
 parsed_dates <- parse_date_time(forcasts$Forecast, orders = c("mdy")) # specifying the possible formats using the orders argument
 forcasts$Forecast <- format(parsed_dates, "%Y-%m-%d") #The possible formats are listed in order of preference, so the function will try to parse each date in the first format, and if that fails, it will move on to the next format, and so on.
