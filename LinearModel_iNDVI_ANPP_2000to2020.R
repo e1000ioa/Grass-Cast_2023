@@ -57,51 +57,59 @@ ggplot(GC_yearly, aes(x=Sp_Avg_ANPP, y=Sp_Avg_NDVI)) +
 
 
 
-yeary_plot <- function(data,x,y,color){
+yeary_plot <- function(data, x, y, color) {
   # Fit a linear regression model
- 
- model <- lm(x ~ y, data=data)
+  model <- lm(y ~ x, data = data)
   
- plot <- ggplot(data, aes(x=x, y=y, label = Year)) +
-   geom_point(color = color, alpha = 1) +
-   geom_smooth(method="lm", formula=y~x, se=FALSE, color= color) +
-   geom_text_repel(size=3,alpha = 0.5, nudge_y=-(max(y)/100)) +
-   
-   xlab("Δ ANPP (lb/acre)") +
-   ylab("Δ iNDVI(%)") +
-   
-   ylim(-1.5, 1.5) +
-   xlim(-1.5, 1.5) +
-   
-    geom_hline(yintercept=0, linetype="dashed", color="gray") +
-    geom_vline(xintercept=0, linetype="dashed", color="gray") +
-   
-   annotate(
-     "text",
-     x = min(x)/1.3, 
-     y=max(y)/1.1,
-     label = paste0("y = ", round(coef(model)[2], digits = 2), "x ", signif(coef(model)[1], digits = 3)),
-     color = "#595959",
-     size = 4
-   ) + #Annotate linear equation
-   
-   
-   annotate(
-     "text",
-     x = min(x)/1.3,
-     y = max(y)/1.2,
-     label = paste(expression("R²"), "=", signif(summary(model)$r.squared, digits = 3)),
-     color = "#595959",
-     size = 4
-   ) + #Annotate R2
+  # Set text sizes
+  annotation_size <- 18 / .pt  # Annotation text size (13 points)
+  general_text_size <- 15 / .pt  # General text size (12 points)
+  axis_text_size <- 50 / .pt  # Axis text size (16 points for larger numbers)
   
-   theme_classic() +
-   theme(axis.line = element_blank(),
-         panel.border = element_rect(colour = "black", fill = NA, size=0.8))
- 
- return(plot)
- 
+  plot <- ggplot(data, aes(x = x, y = y, label = Year)) +
+    geom_point(color = color, alpha = 1) +
+    geom_smooth(method = "lm", formula = y ~ x, se = FALSE, color = color) +
+    geom_text_repel(size = general_text_size, alpha = 0.5, nudge_y = -(max(y) / 100)) +
+    
+    xlab("Δ ANPP (lb/acre)") +
+    ylab("Δ iNDVI(%)") +
+    
+    ylim(-1.5, 1.5) +
+    xlim(-1.5, 1.5) +
+    
+    geom_hline(yintercept = 0, linetype = "dashed", color = "gray") +
+    geom_vline(xintercept = 0, linetype = "dashed", color = "gray") +
+    
+    annotate(
+      "text",
+      x = min(x) / 1.3,
+      y = max(y) / 1.0,
+      label = paste0("y = ", round(coef(model)[2], digits = 2), "x + ", signif(coef(model)[1], digits = 3)),
+      color = "#595959",
+      size = annotation_size
+    ) + # Annotate linear equation
+    
+    annotate(
+      "text",
+      x = min(x) / 1.3,
+      y = max(y) / 1.15,
+      label = paste(expression("R²"), "=", signif(summary(model)$r.squared, digits = 3)),
+      color = "#595959",
+      size = annotation_size
+    ) + # Annotate R2
+    
+    theme_classic() +
+    theme(
+      axis.text = element_text(size = axis_text_size),  # Larger axis text
+      axis.title = element_text(size = axis_text_size),  # Larger axis titles
+      axis.line = element_blank(),
+      panel.border = element_rect(colour = "black", fill = NA, size = 0.8)
+    )
+  
+  return(plot)
 }
+
+
 
 
 #Average z values from 2000 to 2020
@@ -113,9 +121,10 @@ SU <- yeary_plot(GC_yearly, GC_yearly$Su_Z_ANPP,GC_yearly$Su_Z_NDVI, "#FEC306")
 
 ggarrange(SP, SU,
           labels = c("A", "B"),
+          font.label = list(size = 20, color = "black"),
           ncol = 2, nrow = 1)
 
-ggsave("images/NDVI_ANPP_lm.png", 
+ggsave("images/new/NDVI_ANPP_lm.png", 
        dpi = 350,
        height = 18,
        width = 33,

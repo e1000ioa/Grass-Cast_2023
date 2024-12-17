@@ -8,7 +8,7 @@ library(stringr) # The stringr package provides a cohesive set of functions desi
 
 #Spatial Tools
 library(maps) #database of USA maps
-library(rgdal) #Provides bindings to the 'Geospatial' Data Abstraction Library ('GDAL') (>= 1.11.4) and access to projection/transformation operations from the 'PROJ' library.
+#She dead + library(rgdal) #Provides bindings to the 'Geospatial' Data Abstraction Library ('GDAL') (>= 1.11.4) and access to projection/transformation operations from the 'PROJ' library.
 library(sp) #Classes and methods for spatial data; the classes document where the spatial location information resides, for 2D or 3D data
 library(sf) #Support for simple features, a standardized way to encode spatial vector data.
 library(raster) #Reading, writing, manipulating, analyzing and modeling of spatial data. 
@@ -18,25 +18,49 @@ library(ggsn) #Arrow and scale for GGPLOT MAPS
 library(ggspatial) #Spatial data plus the power of the ggplot2 framework means easier mapping
 library(tigris) #spatial data from the Census Bureau, has tribal nations shp.
 
-
 ################
+setwd("C:/GitHub/Grass-Cast_2023/Grass-Cast_2023")
 #Load Data frame
-Forecast_202122 <- read.csv("data/Forecast_Ratio.csv")
+Forecast_202122 <- read.csv("data/Forecast_Ratio_2024.csv")
 unique(Forecast_202122$Forecast)
 
 #Fixing the no data 
 # replace -999 with 31 using mutate_all()
 Forecast_202122 <- mutate_all(Forecast_202122, ~ifelse(. == -999, 31, .))
-
-
 Dates_List <- unique(Forecast_202122$Forecast)
-x.xi1 <- order(as.Date(Dates_List, format = "%Y-%m-%d"))
-Forecast_List <- Dates_List[i1]
+xi1 <- order(as.Date(Dates_List, format = "%Y-%m-%d"))
+Forecast_List <- Dates_List[xi1]
 
+# Date ranges for Spring and Summer
+spring_dates <- list(c("2020-05-15", "2020-06-02"), c("2021-04-14", "2021-06-01"), c("2022-04-05", "2022-05-31"))
+summer_dates <- list(c("2020-06-16", "2020-09-01"), c("2021-06-16", "2021-09-10"), c("2022-06-14", "2022-09-01"))
+
+# Function to classify season
+get_season <- function(date) {
+  for (year_index in seq_along(spring_dates)) {
+    spring_range <- as.Date(spring_dates[[year_index]])
+    summer_range <- as.Date(summer_dates[[year_index]])
+    
+    if (date >= spring_range[1] && date <= spring_range[2]) {
+      return("Spring")
+    } else if (date >= summer_range[1] && date <= summer_range[2]) {
+      return("Summer")
+    }
+  }
+  return("Other") # Default if date doesn't fall in Spring or Summer
+}
+
+# Apply the function to each date in the Forecast column
+Forecast_202122$Season <- sapply(Forecast_202122$Forecast, get_season)
+
+# View the updated data frame
+print(Forecast_202122)
+
+unique_dates_seasons <- unique(Forecast_202122[, c("Forecast", "Season")])
 
 #Check Values
 check_data <- subset(Forecast_202122, Forecast_202122$Forecast == "2021-06-16")
-hist(check_data$pct_diffNPP_avg)
+hist(check_data$longitude)
 
 ##########
 ###################          CREATE SPATIAL OBJECTS
@@ -70,42 +94,54 @@ other_states <- rbind(other_states_1, other_states_2,other_states_3,other_states
 
 ### PREPAPRE Tribal Nations MAPS
 
-#Call the native nations map 
+# Call the native nations map
 nat <- tigris::native_areas(cb = TRUE)
 
-#Transform the southwest counties in the same csr
+# Transform the southwest counties to match the CRS of nat
 sf_c <- st_transform(south_west_c, st_crs(nat))
 
-#Crop the extend of the of the Tribal nations to the southwest 
+# Crop the extent of the Tribal Nations to the southwest
 nat <- st_crop(nat, st_bbox(sf_c))
 
-#Merge all the shapes in nat to use in difference
-nat_union <- st_union(sf_c)
+# Merge all the shapes in nat to use in difference
+nat_union <- st_union(nat)
 nat_union <- st_simplify(nat_union, dTolerance = 1000)
 
-#Conserve only the districts that are outside Tribal Nations
-diff_c <- st_difference(sf_c,nat_union)
-plot(diff_c)
+# Conserve only the districts that are outside Tribal Nations
+diff_c <- st_difference(sf_c, nat_union)
 
-
-
-#Test the map
+# Plot the difference
 ggplot() +
   #geom_sf(data = sf_c, fill = "red", color="gold") +
-  geom_sf(data = nat, fill = "blue", color="black") +
+  geom_sf(data = nat, fill = "yellow", color="black") +
   geom_sf(data = diff_c, color = "black", fill="yellow") +
   theme_void()
-  
+
 ##########
 ############Function
 
-map_annp <- function(date,season,measure,unit,colname) {
+colours = c("#f90207", "#fd9200", "#fffd05", "#baf9a1", "#05fdff", "#3e83f9", "#0200fc") # 7 colors
+breaks = c(-30, -15, -5, 0, 5, 15, 30) # Define breakpoints
+labels = c("<-30", "-30 to -15", "-15 to -5", "-5 to 5", "5 to 15","15 to 30",">30") # Matching the intervals
+  
+
+ggplot() +
+  # Add Raster and modify Scale
+  geom_raster(data = cr_raster, aes(x = x, y = y, fill = layer)) + 
+  scale_fill_stepsn(
+    name = paste(measure, unit),
+    colours = c("#f90207", "#fd9200", "#fffd05", "#baf9a1", "#05fdff", "#3e83f9", "#0200fc"), # 7 colors
+    breaks = c(-30, -15, -5, 0, 5, 15, 30), # Define breakpoints
+    labels = c("<-30", "-30 to -15", "-15 to -5", "-5 to 5", "5 to 15","15 to 30",">30") # Matching the intervals
+  )
+
+map_annp <- function(date,scenario,measure,unit,colname) {
   
   df <- Forecast_202122 %>% 
   filter(Forecast == date) %>%
-    subset(select=c("longitude","latitude",colname))
+    subset(select=c("longitude","latitude",colname,"Season"))
   
-  colnames(df) <- c('x', 'y', 'z')
+  colnames(df) <- c('x', 'y', 'z','Season')
 
   ############
   ## CREATES RASTER
@@ -128,15 +164,16 @@ map_annp <- function(date,season,measure,unit,colname) {
   ##DRAW
   
   a <- ggplot() +
-    #Add Raster and modify Scale +
+    # Add Raster and modify Scale
     geom_raster(data = cr_raster, aes(x = x, y = y, fill = layer)) + 
-    scale_fill_stepsn(name = paste(measure,unit),
-                      colours=c("#f90207", "#fd9200", "#fffd05", "#baf9a1", "#05fdff", "#3e83f9", '#0200fc'),
-                      limits = c(-40,40),
-                      breaks = c(-30, -15, -5, 0, 5, 15,30),
-                      values = scales::rescale(c(-30, -15, -5, 5, 15,30)),
-                      labels = c("<-30", "-30 to -15", "-15 to -5", "-5 to 5", "5 to 15", "15 to 30", ">30")) +
-    
+    scale_fill_stepsn(
+      name = paste(measure, unit),
+      colours = c("#f90207", "#fd9200", "#fffd05", "#baf9a1", "#05fdff", "#3e83f9", "#0200fc"), # 7 colors
+      breaks = c(-30, -15, -5, 0, 5, 15, 30), # Define breakpoints
+      values = scales::rescale(c(-30, -15, -5, 0, 5, 15, 30)), # Rescaled full range
+      labels = c("<-30", "-30 to -15", "-15 to -5", "-5 to 5", "5 to 15", "15 to 30", ">30"), # Matching the intervals
+      limits = c(-35, 35) # Optional: define the limits for the scale
+    ) +
     
     #Add Spatial Elements
     geom_sf(data = south_west_merged, fill = NA, color = "white", linewidth = 2, linetype = "solid") +
@@ -144,23 +181,21 @@ map_annp <- function(date,season,measure,unit,colname) {
     geom_sf(data = diff_c, fill = NA, color=alpha("#000000",0.6), linewidth=0.5,linetype = "dotted") +
     
     ##Add Tribal Nations Maps
-    geom_sf(data = nat, color=alpha("grey",0.8), fill=NA, linewidth=0.5,linetype = "solid") +
+    geom_sf(data = nat, fill = NA, color=alpha("#000000",0.6), linewidth=0.5,linetype = "dotted") +
     
     #Add the states in the background
     geom_sf(data = other_states, fill = "grey", color=alpha("grey40",0.4), linewidth=0.5,linetype = "dashed") +
     theme_minimal() +
     
-
-    
     #Add Text Elements 
     xlab(NULL) + 
     ylab(NULL) +
-    ggtitle(label = paste(measure, season,substr(date, 1, 4)), subtitle = date) +
+    ggtitle(label = paste(measure, toupper(df$Season),"FORECAST",substr(date, 1, 4)), subtitle = paste(date,"- last forecast")) +
     
     #Element Modification
     theme(
       legend.direction = "vertical",  
-      legend.position=c(0.12, 0.3),
+      legend.position = c(0.1,0.3),
       legend.justification = c(0.5, 0.5),
       plot.margin = unit(c(0.4,0.4,0.4,0.4), "cm"),
       legend.background = element_rect(), 
@@ -172,7 +207,7 @@ map_annp <- function(date,season,measure,unit,colname) {
     ) +
     
     #zoom map to cordinates
-    coord_sf(xlim = c(-118, -103),ylim = c(37, 30)) 
+    coord_sf(xlim = c(-117, -103),ylim = c(37, 30.8)) 
   
   ## ADD SCALE AN ARROW
   
@@ -183,8 +218,8 @@ map_annp <- function(date,season,measure,unit,colname) {
     
     ggspatial::annotation_north_arrow(
       location = "tr", which_north = "true",
-      pad_x = unit(9.5, "cm"),
-      pad_y = unit(0.25, "cm"),
+      pad_x = unit(15, "cm"),
+      pad_y = unit(1, "cm"),
       style = ggspatial::north_arrow_orienteering(
         line_width = 1,
         line_col = "black",
@@ -198,7 +233,7 @@ map_annp <- function(date,season,measure,unit,colname) {
   #Save the Plots
   
   ggsave(
-    paste0("images/",measure,"_",season,"_",date,".png"),
+    paste0("images2025/",measure,"_",df$Season,"_",date,".png"),
     plot = last_plot(),
     device = NULL,
     path = NULL,
@@ -213,8 +248,11 @@ map_annp <- function(date,season,measure,unit,colname) {
   return(b)
 }
 
+hist(Forecast_202122$deltaNPP_above)
+map_annp(Forecast_List[3],"below normal","ANPP","(%)","deltaNPP_below")
 
-setwd("/Users/lio/Git/Grass-Cast_2023/Images2024")
+getwd()
+
 ############
 #Result
 # I choose to get a for loop for all the maps at once.
@@ -222,9 +260,8 @@ setwd("/Users/lio/Git/Grass-Cast_2023/Images2024")
 
 for (i in 1:length(Forecast_List)){
   
-  map_annp(Forecast_List[i],"SUMMER FORECAST","ANPP","(%)","deltaNPP_avg")
+  map_annp(Forecast_List[i],"above normal","ANPP","(%)","deltaNPP_above")
   
   
 }
-1  
   

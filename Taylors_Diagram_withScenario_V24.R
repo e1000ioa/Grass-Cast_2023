@@ -9,6 +9,7 @@ library(zoo) #Infrastructure for Regular and Irregular Time Series
 library(plotrix) #add talyor pltos
 library(Metrics) #has the rmse fucntion
 library(scales) #p value fomat
+library(stringr)
 
 set.seed(108)
 
@@ -33,9 +34,12 @@ Dates_List_0ld <- unique(Forecast_Ratio$Forecast)
 forcasts <- combined_df %>% 
   subset(select=c("gridID","Year","Forecast","deltaNPP_below","deltaNPP_avg","deltaNPP_above"))
 
+##################
+
+
 ##Parse the dates into a consistent format
-#parsed_dates <- parse_date_time(forcasts$Forecast, orders = c("mdy")) # specifying the possible formats using the orders argument
-forcasts$Forecast <- format(parsed_dates, "%Y-%m-%d") #The possible formats are listed in order of preference, so the function will try to parse each date in the first format, and if that fails, it will move on to the next format, and so on.
+parsed_dates <- parse_date_time(forcasts$Forecast, orders = c("mdy")) # specifying the possible formats using the orders argument
+#forcasts$Forecast <- format(parsed_dates, "%Y-%m-%d") #The possible formats are listed in order of preference, so the function will try to parse each date in the first format, and if that fails, it will move on to the next format, and so on.
 
 #Region separation file
 summerwinter <- read.csv(file = "data/RatioSummerWinter.csv", head = TRUE, sep=",") %>% 
@@ -48,6 +52,52 @@ Forecast_Ratio <- left_join(forcasts, summerwinter, by = c("gridID" = "gridID"))
 Dates_List <- unique(Forecast_Ratio$Forecast)
 i1 <- order(as.Date(Dates_List, format = "%Y-%m-%d"))
 Dates_List[i1]
+
+#####
+#Make the lengths of the list match
+#Find the unique id's bettewn the unmatched len list
+df <- Forecast_Ratio
+df <- split(df, df$Forecast)
+SameID <- intersect(df[["2022-04-19"]]$gridID,df[["2022-05-03"]]$gridID)
+
+#Go back to DF and add indicator with SameID info
+df <- Forecast_Ratio
+df$Indicator <- 1*(df$gridID %in% SameID)
+df <- split(df, df$Forecast) #go back to list
+
+#Creates empty list
+F.list <- list()
+
+#For loops the values that have mismatched dim
+for(i in 19:23) {
+  F.list[[i]] <- subset(df[[i]], df[[i]]$Indicator!="0")
+  
+}
+
+#Changes the content of the list
+dfx <- df #Just to be safe
+dfx[[19]] <- F.list[[19]]
+dfx[[20]] <- F.list[[20]]
+dfx[[21]] <- F.list[[21]]
+dfx[[22]] <- F.list[[22]]
+dfx[[23]] <- F.list[[23]]
+
+#Know the Models names and order
+orderModels <- data.frame(order=order(names(dfx)),
+                          name=names(dfx))
+
+Forecast_Ratio <- do.call(rbind, dfx) #Finish de DF back to begigin
+rownames(Forecast_Ratio) <- NULL #Eliminates row names
+df <- split(Forecast_Ratio, Forecast_Ratio$Forecast)
+
+write.csv(Forecast_Ratio, "data/ANPP_2020-2022.csv")
+
+#Spiting data in regions
+ANPP_FORECAST_W <- subset(Forecast_Ratio, pptRatioSummerWinter < '0.8')
+ANPP_FORECAST_T <- Forecast_Ratio  %>%   filter(pptRatioSummerWinter >0.8 &  pptRatioSummerWinter < 1.2)
+ANPP_FORECAST_S <- subset(Forecast_Ratio, pptRatioSummerWinter > '1.2')
+
+###############
 
 ###### Make the lengths of the list match ######
 
@@ -175,7 +225,6 @@ write.csv(Regions, "data/regions_stats.csv")
 
 
 ##############################################################################
-#Select data to add to the Taylor Diagram
 
 #All regions as one
 ANPP_FORECAST_ALL <- split(Forecast_Ratio, Forecast_Ratio$Forecast)
@@ -218,9 +267,9 @@ Taylor_Maker <- function(df, zone, n, x, title) {
   modelsB <- model_select(df,5) #Average
   modelsC <- model_select(df,6) #Above
   
-  ColorA <- "#CB3446"
-  ColorB <- "#3446CB"
-  ColorC <- "#46CB34"
+  ColorA <- "#440154"
+  ColorB <- "#287D8e"
+  ColorC <- "#F0A202"
   
   #Creates new dataframe  filtering the dates
   dfz <- orderModels[orderModels$name >= as.Date(n) & orderModels$name <= as.Date(x),]
@@ -229,11 +278,11 @@ Taylor_Maker <- function(df, zone, n, x, title) {
   ref <- as.numeric(modelsA[[tail(dfz$order, n=1)]])
   
   #Generates the plot
-  png(file= paste0("images/taylor/new/TaylorDiagram_",title,".png"),
+  png(file= paste0("images2025/taylor/TaylorDiagram_",title,".png"),
       width=1000, height=1000, pointsize = 25) 
   
   #Creates first diagram
-  taylor.diagram(ref,as.numeric(modelsA[[dfz$order[1]]]), col=ColorA, pch=15, cex=1, pcex = 2,
+  taylor.diagram(ref,as.numeric(modelsA[[dfz$order[1]]]), col=ColorA, pch='a', cex=1, pcex = 1,
                  main = NULL,
                  pos.cor=FALSE,
                  show.gamma = T,
@@ -244,12 +293,12 @@ Taylor_Maker <- function(df, zone, n, x, title) {
   for (i in 2:(length(dfz$order)-1)){
     
     #BElow avg Model
-    taylor.diagram(ref,as.numeric(modelsA[[dfz$order[i]]]), add=TRUE,col=ColorA,pch=head(c(15,16,17,18,19,20), length(dfz$order)-1)[i], cex=1,
-                   pcex = 2)
+    taylor.diagram(ref,as.numeric(modelsA[[dfz$order[i]]]), add=TRUE,col=ColorA,pch=head(c('a','b','c','d','e','f','z'), length(dfz$order)-1)[i], cex=1,
+                   pcex = 1)
     
     #Separates the Null Hypothesis
-    taylor.diagram(ref,as.numeric(modelsA[[tail(dfz$order, n=1)]]), add=TRUE,col="black",pch=4, cex=1,
-                   pcex = 2) 
+    taylor.diagram(ref,as.numeric(modelsA[[tail(dfz$order, n=1)]]), add=TRUE,col="black",pch='z', cex=1,
+                   pcex = 1) 
     
     #Cex = plotting text and symbols should be scaled relative to the default
     #pcex = point expansion for the plotted points.
@@ -258,17 +307,23 @@ Taylor_Maker <- function(df, zone, n, x, title) {
   
   for (i in 1:(length(dfz$order)-1)){
     #Average model
-    taylor.diagram(ref,as.numeric(modelsB[[dfz$order[i]]]), add=TRUE,col=ColorB,pch=head(c(15,16,17,18,19,20), length(dfz$order)-1)[i], cex=1,
-                   pcex = 2, order = -100) 
+    taylor.diagram(ref,as.numeric(modelsB[[dfz$order[i]]]), add=TRUE,col=ColorB,pch=head(c('a','b','c','d','e','f','z'), length(dfz$order)-1)[i], cex=1,
+                   pcex = 1, order = -100) 
     #Above avg model
-    taylor.diagram(ref,as.numeric(modelsC[[dfz$order[i]]]), add=TRUE,col=ColorC, pch=head(c(15,16,17,18,19,20), length(dfz$order)-1)[i], cex=1,
-                   pcex = 2) 
+    taylor.diagram(ref,as.numeric(modelsC[[dfz$order[i]]]), add=TRUE,col=ColorC, pch=head(c('a','b','c','d','e','f','z'), length(dfz$order)-1)[i], cex=1,
+                   pcex = 1) 
   }
+  
+  text_colors <- c(rep("black", length(substr(dfz$name, 6, 10))), ColorA, ColorB, ColorC)  # Change "blue" to your desired color
+  
+  
   
   legend("bottom", title="Forecast Dates and Scenarios", 
          legend=c(substr(dfz$name, 6, 10), "Bellow", "Average", "Above"), 
-         col=c(rep("black",length(substr(dfz$name, 6, 10))),ColorA,ColorB,ColorC), pch=c(head(c(15,16,17,18,19,20), length(dfz$order)-1),13,rep(16,3)),
-         bty="n", border=F, ncol=5, x.intersp = 1.5)
+         col=c(rep("black",length(substr(dfz$name, 6, 10))),ColorA,ColorB,ColorC), pch=c(head(c('a','b','c','d','e','f','z'), length(dfz$order)-1),'z',rep('○',3)),
+         bty="n", border=F, ncol=5, 
+         text.col = text_colors,  # Set text colors
+         x.intersp = 1.5)
   
   
   
@@ -278,7 +333,7 @@ Taylor_Maker <- function(df, zone, n, x, title) {
   dev.off()
   
 }
-########## ALL
+######### ALL
 #2020
 Taylor_Maker(ANPP_FORECAST_ALL, "ALL", "2020-05-15","2020-06-02","Spring2020")
 Taylor_Maker(ANPP_FORECAST_ALL, "ALL", "2020-06-16","2020-09-01","Summer2020")

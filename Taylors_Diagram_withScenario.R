@@ -201,7 +201,7 @@ Southwest_Stats <- list(Summer = Summer, Spring = Spring) %>%
   mutate(Scenario = factor(Scenario, levels = custom_order)) %>%
   arrange(Season, Forecast, Scenario)
 
-write.csv(Southwest_Stats, "data/Southwest_Stats2.csv")
+write.csv(Southwest_Stats, "data/Southwest_Stats_24.csv")
 
 ####### STATS WINTER REGION ALL SCNEARIOS (SR = Winter Region)
 

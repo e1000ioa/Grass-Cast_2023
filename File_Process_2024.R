@@ -5,8 +5,8 @@ library(lubridate)
 
 
 # List all CSV files in the directory
-path <- "/Users/lio/Git/Grass-Cast_2023/data/2024"
-csv_files <- list.files(path, pattern = "*.csv", full.names = TRUE)
+path <- "C:/GitHub/Grass-Cast_2023/Grass-Cast_2023/data/2024"
+csv_files<- list.files(path, pattern = "*.csv", full.names = TRUE)
 
 ###### Check Column names and Data #####
 
@@ -46,7 +46,12 @@ for (file in csv_files) {
 # Display the summary data frame
 print(summary_df)
 
+####set de the time in english
+# Save the current locale
+current_locale <- Sys.getlocale("LC_TIME")
 
+# Set locale to English
+Sys.setlocale("LC_TIME", "en_US.UTF-8")
 
 ###### Unite de Files #####
 
@@ -69,20 +74,20 @@ for (file in csv_files) {
   colnames(df) <- new_col_names
   
   # Extract year, month, and day from the filename
-  year <- sub(".*_(\\d{4})_.*", "\\1", file_name)
+  year <- as.integer(sub(".*_(\\d{4})_.*", "\\1", file_name))
   month <- sub(".*_(\\d{4})_([A-Za-z]+)_.*", "\\2", file_name)
-  day <- sub(".*_(\\d{4})_[A-Za-z]+_(\\d+)", "\\2", file_name)
+  day <- as.integer(sub(".*_(\\d{4})_[A-Za-z]+_(\\d+)", "\\2", file_name))
   
   # Add new columns for Year, Month, and Day
   df <- df %>% 
-    mutate(Year = as.integer(year),
+    mutate(Year = year,
            Month = month,
-           Day = as.integer(day),
+           Day = day,
            File_Name = file_name)
   
-  # Create a Date column using Year, Month, and Day
+  # Create a Date column using Year, Month, and Day (Month is in letters)
   df <- df %>%
-    mutate(Forecast = as.Date(paste(Year, Month, Day, sep = "-"), format = "%Y-%B-%d"))
+    mutate(Forecast = as.Date(paste(Year, Month, Day, sep = " "), format = "%Y %B %d"))
   
   # Append the processed dataframe to the list
   processed_dfs[[file_name]] <- df
@@ -90,6 +95,7 @@ for (file in csv_files) {
 
 # Unite all the processed dataframes into one
 combined_df <- bind_rows(processed_dfs)
+
 
 # Display the combined dataframe
 print(combined_df)
