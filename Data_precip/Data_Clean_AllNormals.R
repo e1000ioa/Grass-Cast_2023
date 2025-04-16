@@ -1,6 +1,6 @@
 library(dplyr)
 
-AllClimate <- read.csv("data/AllClimate_Data_2010.csv")
+AllClimate <- read.csv("Data_precip/data/AllClimate_Data_2010.csv")
 
 # select only columns that contain "normal" and the first 5 columns
 cli_normal <- AllClimate %>%

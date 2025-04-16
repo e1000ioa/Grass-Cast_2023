@@ -8,8 +8,8 @@ library(lubridate)
 library(splusTimeDate)
 
 # List all files in the folder
-AZ_files <- list.files(path = "Rain_Data/Arizona", pattern = "\\.csv$", full.names = TRUE)
-NM_files <- list.files(path = "Rain_Data/NewMexico", pattern = "\\.csv$", full.names = TRUE)
+AZ_files <- list.files(path = "Data_precip/Rain_Data/Arizona", pattern = "\\.csv$", full.names = TRUE)
+NM_files <- list.files(path = "Data_precip/Rain_Data/NewMexico", pattern = "\\.csv$", full.names = TRUE)
 
 # Read and bind all CSV files
 AZ_data <- AZ_files %>%
@@ -30,7 +30,7 @@ ANPP <- split(ANPP, ANPP$Forecast)
 Data <- function(N) {
 
 #Set Dates
-start_date <- as.Date(names(ANPP)[N])-days(6)
+start_date <- as.Date(names(ANPP)[N])-lubridate::days(6)
 end_date <- as.Date(names(ANPP)[N])
 
 # Filter only rows within the specific date range
